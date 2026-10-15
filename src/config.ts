@@ -1,8 +1,9 @@
 // Configuração lida do ambiente. Nenhum segredo fica no código.
 
+export const faltando: string[] = [];
 function obrigatoria(nome: string): string {
-  const v = process.env[nome];
-  if (!v) throw new Error(`Variável de ambiente ${nome} não definida.`);
+  const v = (process.env[nome] || "").trim();
+  if (!v) faltando.push(nome);
   return v;
 }
 const opcional = (nome: string, padrao = "") => process.env[nome] || padrao;

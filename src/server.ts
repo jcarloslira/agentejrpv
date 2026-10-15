@@ -7,7 +7,7 @@
  */
 import Fastify from "fastify";
 import { timingSafeEqual } from "node:crypto";
-import { config } from "./config.js";
+import { config, faltando } from "./config.js";
 import { q, pool } from "./db.js";
 import { enfileirar, garantirAdmin } from "./atendimento.js";
 import * as wa from "./whatsapp/uazapi.js";
@@ -22,10 +22,12 @@ const igual = (a: string, b: string) => {
   return x.length === y.length && timingSafeEqual(x, y);
 };
 
+// sempre 200 (o Render só precisa saber que o processo está de pé); o corpo diz o que falta
 app.get("/saude", async () => {
-  const banco = await q(`select 1 ok`).then(() => true).catch(() => false);
+  const banco = await q(`select current_user usuario, (select count(*) from paloma.usuarios)::int usuarios`)
+    .then((r) => ({ ok: true, ...r[0] })).catch((e) => ({ ok: false, erro: (e as Error).message }));
   const whatsapp = await wa.status().catch((e) => ({ erro: (e as Error).message }));
-  return { ok: banco, banco, whatsapp, voz: vozLigada() };
+  return { ok: banco.ok && !faltando.length, variaveis_faltando: faltando, banco, whatsapp, voz: vozLigada() };
 });
 
 app.post<{ Params: { segredo: string } }>("/webhook/whatsapp/:segredo", async (req, rep) => {
@@ -107,10 +109,14 @@ async function cicloPowerCrm() {
 }
 
 async function iniciar() {
-  await garantirAdmin();
+  // sobe mesmo com algo faltando, para o /saude mostrar o problema em vez de o deploy falhar calado
   await app.listen({ port: config.porta, host: "0.0.0.0" });
-  cicloPowerCrm();
-  setInterval(cicloPowerCrm, 15 * 60e3);
+  if (faltando.length) app.log.error(`Variáveis de ambiente faltando: ${faltando.join(", ")}`);
+  await garantirAdmin().catch((e) => app.log.error(e, "banco: não consegui conectar (confira DATABASE_URL)"));
+  if (!faltando.includes("POWERCRM_TOKEN")) {
+    cicloPowerCrm();
+    setInterval(cicloPowerCrm, 15 * 60e3);
+  }
 }
 
 iniciar().catch((e) => {
