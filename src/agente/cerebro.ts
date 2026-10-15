@@ -49,7 +49,7 @@ export async function pensar(e: Entrada): Promise<string> {
     {
       type: "text",
       text: [
-        `Agora: ${agoraTexto()} (horário de Alagoas).`,
+        `Agora: ${agoraTexto()} (horário de Sergipe).`,
         `Você está falando com ${u.nome}${u.apelido ? ` (chame de ${u.apelido})` : ""}, ${DESCRICAO_PAPEL[u.papel]}.`,
         u.codigo_voluntario ? `Código de voluntário no SGA: ${u.codigo_voluntario}.` : "",
         u.powercrm_email ? `E-mail no Power CRM: ${u.powercrm_email}.` : "",

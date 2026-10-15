@@ -63,6 +63,11 @@ export async function sga(metodo: "GET" | "POST", rota: string, corpo?: unknown,
   });
   const texto = await r.text();
   if (r.status === 401 && tentativa === 0) return sga(metodo, rota, corpo, 1);
+  // a Hinova devolve 502/503 de vez em quando; uma nova tentativa costuma passar
+  if (r.status >= 502 && r.status <= 504 && tentativa < 2) {
+    await new Promise((ok) => setTimeout(ok, 1500 * (tentativa + 1)));
+    return sga(metodo, rota, corpo, tentativa + 1);
+  }
   if (!r.ok) {
     if (r.status === 406 && periodoVazio(texto)) return [];
     let msg = texto.slice(0, 600);
