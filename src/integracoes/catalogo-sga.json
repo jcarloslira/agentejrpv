@@ -1,0 +1,1683 @@
+[
+{
+"grupo": "Associado",
+"metodo": "POST",
+"rota": "/alterar/associado",
+"titulo": "Alterar",
+"campos": [
+"codigo_associado*",
+"nome",
+"cpf",
+"rg",
+"data_nascimento",
+"telefone",
+"celular",
+"email",
+"logradouro",
+"numero",
+"complemento",
+"bairro",
+"cidade",
+"estado",
+"cep",
+"codigo_profissao",
+"codigo_regional",
+"codigo_cooperativa",
+"codigo_conta",
+"dia_vencimento",
+"codigo_externo",
+"sexo",
+"boleto_fisico",
+"data_vencimento_habilitacao",
+"data_primeira_habilitacao",
+"categoria_cnh",
+"codigo_como_conheceu",
+"cartao"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/associado/alterar-situacao-para/:codigo_situacao/:codigo_associado",
+"titulo": "Alterar situação",
+"campos": [
+"codigo_situacao*",
+"codigo_associado*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/associado/buscar-por-cpf-senha/:cpf/:senha",
+"titulo": "Buscar Por CPF-CNPJ e Senha",
+"campos": []
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/associado/buscar/:cpfOuCodigo/:buscar_por",
+"titulo": "Buscar",
+"campos": [
+"cpfOuCodigo*",
+"buscar_por*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "POST",
+"rota": "/associado/cadastrar",
+"titulo": "Cadastrar",
+"campos": [
+"nome*",
+"cpf*",
+"rg*",
+"data_nascimento*",
+"ddd*",
+"telefone*",
+"logradouro*",
+"numero*",
+"bairro*",
+"cidade*",
+"estado*",
+"cep*",
+"codigo_conta*",
+"mes_referente*",
+"sexo*",
+"complemento",
+"orgao_expedidor_rg",
+"data_expedicao_rg",
+"ddd_celular",
+"ddd_comercial",
+"telefone_comercial",
+"Celular",
+"email",
+"email_auxiliar",
+"codigo_profissao",
+"codigo_regional",
+"codigo_cooperativa",
+"dia_vencimento",
+"codigo_externo",
+"data_vencimento_habilitacao",
+"data_primeira_habilitacao",
+"categoria_cnh",
+"numero_cnh",
+"data_contrato",
+"valor_fixo",
+"codigo_voluntario",
+"qtde_parcela_carne",
+"codigo_como_conheceu",
+"observacao",
+"beneficios",
+"cartao"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "POST",
+"rota": "/indicacao-externa/cadastrar",
+"titulo": "Cadastrar Indicação Externa",
+"campos": [
+"nome*",
+"cpf",
+"ddd_telefone",
+"telefone",
+"codigo_associado_indicador",
+"codigo_veiculo_indicador"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/associado/gerar-url-cadastro-cartao/:id_associado/:cpf",
+"titulo": "Gerar URL Cadastro Cartão",
+"campos": []
+},
+{
+"grupo": "Associado",
+"metodo": "POST",
+"rota": "/listar/alteracao-associados/",
+"titulo": "Listar Alterações de Associados",
+"campos": [
+"data_inicial*",
+"data_final*",
+"ultima_alteracao*",
+"campos*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/associado/aniversariante",
+"titulo": "Listar Aniversariante Dia",
+"campos": []
+},
+{
+"grupo": "Associado",
+"metodo": "POST",
+"rota": "/listar/associado/",
+"titulo": "Listar",
+"campos": [
+"codigo_situacao*",
+"inicio_paginacao*",
+"fim_paginacao*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/associado/cartao/listar/:codigoOuCpf",
+"titulo": "Buscar Cartões associado",
+"campos": []
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/listar/estadocivil/:situacao",
+"titulo": "Listar Estados Civis",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/indicacao-externa/listar/:situacao",
+"titulo": "Listar Indicação Ext.",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/midia/listar/:situacao",
+"titulo": "Listar Mídia",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/listar/parentesco/:situacao",
+"titulo": "Listar Parentescos",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/listar/profissao/:situacao",
+"titulo": "Listar Profissões",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/associado/novos-contratos/listar",
+"titulo": "Listar a quantidade de contratos",
+"campos": []
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/listar/situacao/:situacao",
+"titulo": "Listar Situação",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/listar/vencimento/:situacao",
+"titulo": "Listar Vencimentos",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Associado",
+"metodo": "GET",
+"rota": "/associado-ativo-inativo/listar",
+"titulo": "Quant. Associado Ativo/Inativo",
+"campos": []
+},
+{
+"grupo": "Atendimento",
+"metodo": "GET",
+"rota": "/buscar/historico-atendimento-associado/:cpf",
+"titulo": "Busca Hist. Associado",
+"campos": []
+},
+{
+"grupo": "Atendimento",
+"metodo": "POST",
+"rota": "/cadastrar/historico-atendimento-associado",
+"titulo": "Cadastrar Hist. Associado",
+"campos": [
+"codigo_associado*",
+"cpf",
+"codigo_status_atendimento*",
+"codigo_tipo_atendimento*",
+"codigo_departamento*",
+"titulo*",
+"descricao*",
+"codigo_terceiro",
+"placa",
+"valor_atendimento",
+"codigo_fornecedor"
+]
+},
+{
+"grupo": "Atendimento",
+"metodo": "GET",
+"rota": "/listar/departamento/:situacao",
+"titulo": "LIstar departamento",
+"campos": []
+},
+{
+"grupo": "Atendimento",
+"metodo": "GET",
+"rota": "/listar/status-atendimento/:situacao",
+"titulo": "Listar status",
+"campos": []
+},
+{
+"grupo": "Atendimento",
+"metodo": "GET",
+"rota": "/listar/tipo-atendimento/:situacao",
+"titulo": "Listar tipo",
+"campos": []
+},
+{
+"grupo": "Autenticacao",
+"metodo": "POST",
+"rota": "/usuario/autenticar",
+"titulo": "Autenticar Usuário",
+"campos": [
+"usuario*",
+"senha*"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "POST",
+"rota": "/alterar/beneficiario",
+"titulo": "Alterar",
+"campos": [
+"codigo_beneficiario*",
+"cpf*",
+"nome",
+"rg",
+"data_nascimento",
+"codigo_parentesco",
+"telefone",
+"celular",
+"email",
+"logradouro",
+"numero",
+"complemento",
+"bairro",
+"cidade",
+"estado",
+"cep",
+"codigo_profissao",
+"codigo_cooperativa",
+"codigo_conta",
+"dia_vencimento",
+"codigo_associado",
+"codigo_externo",
+"sexo",
+"categoria_cnh"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "GET",
+"rota": "/alterar/beneficiario-para-associado/:codigo_ou_cpf",
+"titulo": "Alterar para associado",
+"campos": [
+"codigo_ou_cpf*"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "POST",
+"rota": "/beneficiario/cadastrar",
+"titulo": "Cadastrar",
+"campos": [
+"nome*",
+"cpf*",
+"rg*",
+"data_nascimento*",
+"telefone*",
+"logradouro*",
+"numero*",
+"complemento*",
+"bairro*",
+"cidade*",
+"estado*",
+"cep*",
+"codigo_conta*",
+"codigo_associado*",
+"codigo_parentesco",
+"celular",
+"email",
+"codigo_profissao",
+"codigo_cooperativa",
+"dia_vencimento",
+"codigo_externo",
+"sexo",
+"categoria_cnh",
+"qtde_parcela_carne",
+"valor_fixo",
+"gerar_cobranca",
+"beneficios"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "GET",
+"rota": "/listar/vencimento/:situacao",
+"titulo": "Listar vencimento",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "POST",
+"rota": "/listar/beneficiario",
+"titulo": "Listar",
+"campos": [
+"codigo_situacao*",
+"inicio_paginacao*",
+"fim_paginacao*"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "GET",
+"rota": "/listar/beneficio-beneficiario/:codigo_beneficiario",
+"titulo": "Listar Benefícios Vinculados",
+"campos": [
+"codigo_beneficiario*"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "GET",
+"rota": "/listar/conta/:situacao",
+"titulo": "Listar contas bancárias",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "GET",
+"rota": "/listar/estadocivil/:situacao",
+"titulo": "Listar Estado Civil",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "GET",
+"rota": "/listar/parentesco/:situacao",
+"titulo": "Listar parentesco",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "GET",
+"rota": "/listar/profissao/:situacao",
+"titulo": "Listar profissao",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Beneficiario",
+"metodo": "GET",
+"rota": "/listar/situacao/:situacao",
+"titulo": "Listar situacao",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Beneficio",
+"metodo": "POST",
+"rota": "/alterar/beneficio",
+"titulo": "Alterar",
+"campos": [
+"codigo_beneficio*",
+"codigo_classificacao_beneficio",
+"idade_beneficiario_inicial",
+"idade_beneficiario_final",
+"descricao"
+]
+},
+{
+"grupo": "Beneficio",
+"metodo": "GET",
+"rota": "/listar/beneficio-por-situacao/:situacao",
+"titulo": "Listar",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Beneficio",
+"metodo": "GET",
+"rota": "/listar/classificacao-beneficio/:situacao",
+"titulo": "Listar Classificação",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Beneficio",
+"metodo": "POST",
+"rota": "/beneficiario/vincular-beneficio",
+"titulo": "Vincular",
+"campos": [
+"codigo_beneficiario*",
+"beneficios*"
+]
+},
+{
+"grupo": "Beneficio",
+"metodo": "POST",
+"rota": "/vincular-remover/beneficio",
+"titulo": "Vincular ou remover benefício",
+"campos": [
+"codigo_beneficiario*",
+"beneficios_adicionar*",
+"beneficios_remover*"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "POST",
+"rota": "/alterar/vencimento-boleto",
+"titulo": "Alterar Vencimento",
+"campos": [
+"nosso_numero*",
+"nova_data_vencimento*"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "GET",
+"rota": "/buscar/boleto/:nosso_numero",
+"titulo": "Buscar",
+"campos": [
+"nosso_numero*"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "GET",
+"rota": "/listar/situacao-boleto/:situacao",
+"titulo": "Listar Situação",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "POST",
+"rota": "/boleto/cadastrar",
+"titulo": "Cadastrar",
+"campos": [
+"codigo_associado*",
+"codigo_tipo_boleto*",
+"codigo_regional*",
+"codigo_conta*",
+"codigo_situacao*",
+"mes_referente*",
+"link_boleto*",
+"array_parcela*",
+"referencia*",
+"email",
+"numero_banco",
+"data_emissao",
+"linha_digitavel",
+"codigo_barras",
+"codigo_tipo_cobranca_recorrente",
+"dados_baixa"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "POST",
+"rota": "/listar/boleto",
+"titulo": "Listar",
+"campos": [
+"codigo_situacao*",
+"data_emissao_inicial",
+"data_emissao_final",
+"data_vencimento_inicial",
+"data_vencimento_final",
+"data_vencimento_original_inicial",
+"data_vencimento_original_final",
+"data_pagamento_inicial",
+"data_pagamento_final",
+"mes_referente",
+"codigo_associado",
+"codigo_boleto"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "POST",
+"rota": "/listar/boleto-associado/periodo",
+"titulo": "Listar por período",
+"campos": [
+"data_vencimento_inicial",
+"data_vencimento_final",
+"data_vencimento_original_inicial",
+"data_vencimento_original_final",
+"data_pagamento_inicial",
+"data_pagamento_final",
+"data_emissao_inicial",
+"data_emissao_final",
+"codigo_tipo_boleto",
+"codigo_situacao_boleto",
+"quantidade_por_pagina",
+"inicio_paginacao",
+"codigo_banco",
+"mes_referente"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "POST",
+"rota": "/listar/boleto/periodo",
+"titulo": "Listar Boleto Associado Beneficiario",
+"campos": [
+"codigo_associado",
+"cpf_associado",
+"codigo_beneficiario",
+"cpf_beneficiario",
+"codigo_situacao_boleto",
+"data_emissao_inicial",
+"data_emissao_final",
+"data_vencimento_inicial",
+"data_vencimento_final",
+"data_vencimento_original_inicial",
+"data_vencimento_original_final",
+"data_pagamento_inicial",
+"data_pagamento_final",
+"quantidade_por_pagina",
+"inicio_paginacao"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "POST",
+"rota": "/listar/boleto-associado-veiculo",
+"titulo": "Listar por associado/veículo",
+"campos": [
+"codigo_associado*",
+"codigo_veiculo*",
+"cpf_associado*",
+"placa*",
+"codigo_situacao_boleto",
+"data_vencimento_inicial",
+"data_vencimento_final",
+"data_vencimento_original_inicial",
+"data_vencimento_original_final",
+"data_pagamento_inicial",
+"data_pagamento_final",
+"data_emissao_inicial",
+"data_emissao_final"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "GET",
+"rota": "/listar/conta/:situacao",
+"titulo": "Listar Contas Bancárias",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "GET",
+"rota": "/listar/tipo-boleto/:situacao",
+"titulo": "Listar tipo",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "GET",
+"rota": "/tipo-envio-boleto/listar/:situacao",
+"titulo": "Listar tipo do envio do boleto",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Boleto",
+"metodo": "GET",
+"rota": "/tipo-cobranca-recorrente/listar/:situacao",
+"titulo": "Listar Tipo Cobr. Recorrente",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Cooperativa",
+"metodo": "GET",
+"rota": "/cooperativa/buscar/:codigo_cooperativa",
+"titulo": "Buscar",
+"campos": [
+"codigo_cooperativa*"
+]
+},
+{
+"grupo": "Cooperativa",
+"metodo": "POST",
+"rota": "/cooperativa/cadastrar",
+"titulo": "Cadastrar",
+"campos": [
+"nome*",
+"cpf*",
+"email*",
+"telefone*",
+"contato",
+"logradouro",
+"numero",
+"complemento",
+"bairro",
+"cidade",
+"estado",
+"cep"
+]
+},
+{
+"grupo": "Cooperativa",
+"metodo": "GET",
+"rota": "/listar/cooperativa/:situacao",
+"titulo": "Listar",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Cota",
+"metodo": "GET",
+"rota": "/cota/buscar/:codigo_cota",
+"titulo": "Buscar",
+"campos": [
+"codigo_cota*"
+]
+},
+{
+"grupo": "Cota",
+"metodo": "GET",
+"rota": "/listar/cota/:codigo_regional/:codigo_cooperativa/:codigo_tipo_veiculo/:valor_fipe/:cilindrada",
+"titulo": "Listar",
+"campos": [
+"codigo_regional*",
+"codigo_cooperativa*",
+"codigo_tipo_veiculo*",
+"valor_fipe*",
+"cilindrada*"
+]
+},
+{
+"grupo": "Evento",
+"metodo": "GET",
+"rota": "/evento-sem-alteracao/listar/:quantidade_dias/:codigo_situacao",
+"titulo": "Listar Eventos Sem Alteração",
+"campos": [
+"quantidade_dias*",
+"codigo_situacao*"
+]
+},
+{
+"grupo": "Evento",
+"metodo": "POST",
+"rota": "/evento-aberto/listar",
+"titulo": "Listar Eventos Abertos",
+"campos": [
+"data_inicial*",
+"data_final*"
+]
+},
+{
+"grupo": "Evento",
+"metodo": "POST",
+"rota": "/evento-finalizado/listar",
+"titulo": "Listar Eventos Finalizados",
+"campos": [
+"data_inicial*",
+"data_final*"
+]
+},
+{
+"grupo": "Evento",
+"metodo": "GET",
+"rota": "/listar/evento-veiculo/:placa_ou_codigo",
+"titulo": "Listar por veículo",
+"campos": [
+"placa_ou_codigo*"
+]
+},
+{
+"grupo": "Evento",
+"metodo": "GET",
+"rota": "/situacao-evento/listar/:situacao",
+"titulo": "Listar Situações Evento",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Evento",
+"metodo": "GET",
+"rota": "/veiculo-reparo-oficina/listar",
+"titulo": "Veículos por Oficina/Fornecedor",
+"campos": []
+},
+{
+"grupo": "Fornecedor",
+"metodo": "GET",
+"rota": "/fornecedor/buscar/:cpf_cnpj",
+"titulo": "Buscar",
+"campos": [
+"cpf_cnpj*"
+]
+},
+{
+"grupo": "Fornecedor",
+"metodo": "POST",
+"rota": "/fornecedor/cadastrar",
+"titulo": "Cadastrar",
+"campos": [
+"cpf*",
+"nome*",
+"telefone*",
+"nome_fantasia",
+"logradouro",
+"numero",
+"complemento",
+"bairro",
+"cidade",
+"estado",
+"cep",
+"email"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "POST",
+"rota": "/mgf-lancamento/alterar",
+"titulo": "Alterar Lançamento",
+"campos": [
+"codigo_lancamento*",
+"codigo_evento",
+"codigo_associado",
+"codigo_veiculo",
+"codigo_fornecedor",
+"numero_nota_fiscal",
+"controle_interno",
+"alterar_parcelas"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "GET",
+"rota": "/mgf-conta-pagar/buscar/:codigo_ou_nota",
+"titulo": "Buscar Conta Pagar",
+"campos": [
+"codigo_ou_nota*"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "GET",
+"rota": "/mgf-conta-receber/buscar/:codigo_ou_nota",
+"titulo": "Buscar Conta Receber",
+"campos": [
+"codigo_ou_nota*"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "GET",
+"rota": "/mgf-saldo-caixa/buscar/:codigo_caixa",
+"titulo": "Buscar Saldo Caixa",
+"campos": [
+"codigo_caixa*"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "GET",
+"rota": "/mgf-saldo-conta/buscar/:codigo_conta",
+"titulo": "Buscar Saldo Conta",
+"campos": [
+"codigo_conta*"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "POST",
+"rota": "/mgf-lancamento/cadastrar",
+"titulo": "Cadastrar Lançamento",
+"campos": [
+"data_nota_fiscal*",
+"numero_nota_fiscal",
+"valor_nota_fiscal*",
+"codigo_operacao*",
+"codigo_suboperacao*",
+"data_pagamento",
+"codigo_banco",
+"codigo_caixa_local",
+"parcelas*"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "GET",
+"rota": "/mgf-lancamento/excluir/:codigo_lancamento",
+"titulo": "Excluir Lançamento",
+"campos": [
+"codigo_lancamento*"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "GET",
+"rota": "/mgf-suboperacao/listar/:situacao",
+"titulo": "Listar Sub-operação",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "GET",
+"rota": "/listar/conta/:situacao",
+"titulo": "Listar conta bancária",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "POST",
+"rota": "/mgf-lancamento/listar",
+"titulo": "Listar Lançamento",
+"campos": [
+"data_vencimento_inicial*",
+"data_vencimento_final*",
+"codigo_operacao"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "GET",
+"rota": "/mgf-caixa/listar/:situacao",
+"titulo": "",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "MGF",
+"metodo": "GET",
+"rota": "/mgf-operacao/listar",
+"titulo": "Listar Operações MGF",
+"campos": []
+},
+{
+"grupo": "Produto",
+"metodo": "GET",
+"rota": "/produto/buscar/:codigo_produto",
+"titulo": "Buscar",
+"campos": [
+"codigo_produto*"
+]
+},
+{
+"grupo": "Produto",
+"metodo": "POST",
+"rota": "/veiculo/incluir/produto-adicional",
+"titulo": "Cadastrar Prod. Adicional",
+"campos": [
+"codigo_veiculo*",
+"descricao*",
+"valor*",
+"formato*",
+"codigo_classificacao*",
+"mes_referente*",
+"mes_referente_final*"
+]
+},
+{
+"grupo": "Produto",
+"metodo": "GET",
+"rota": "/listar/produto/:codigo_regional/:codigo_cooperativa/:codigo_tipo_veiculo/:valor_fipe/:cilindrada",
+"titulo": "Listar",
+"campos": [
+"codigo_regional*",
+"codigo_cooperativa*",
+"codigo_tipo_veiculo*",
+"valor_fipe*",
+"cilindrada*"
+]
+},
+{
+"grupo": "Produto",
+"metodo": "GET",
+"rota": "/listar/produto-por-situacao/:situacao",
+"titulo": "Listar Por Situação",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Produto",
+"metodo": "GET",
+"rota": "/listar/classificacao-produto/:situacao",
+"titulo": "Listar Classificação",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Produto",
+"metodo": "GET",
+"rota": "/listar/grupo-produto/:situacao",
+"titulo": "Listar grupo",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Produto",
+"metodo": "GET",
+"rota": "/grupoproduto/listar",
+"titulo": "Listar Grupo Produto",
+"campos": []
+},
+{
+"grupo": "Produto",
+"metodo": "POST",
+"rota": "/veiculo/listar-produto-adicional",
+"titulo": "Listar Prod. Adicional",
+"campos": [
+"codigo_veiculo*",
+"data_cadastro_inicial*",
+"data_cadastro_final*"
+]
+},
+{
+"grupo": "Produto",
+"metodo": "GET",
+"rota": "/produto-vinculado-veiculo/listar/:codigoOuPlaca",
+"titulo": "Listar Produtos Veículo",
+"campos": [
+"codigoOuPlaca*"
+]
+},
+{
+"grupo": "Produto",
+"metodo": "POST",
+"rota": "/veiculo/vincular-remover/produto",
+"titulo": "Vincular ou remover produto",
+"campos": [
+"codigo_veiculo*",
+"produtos_adicionar*",
+"produtos_remover*"
+]
+},
+{
+"grupo": "Regional",
+"metodo": "POST",
+"rota": "/regional/cadastrar/",
+"titulo": "Cadastrar",
+"campos": [
+"nome*",
+"nome_fantasia*",
+"cnpj*",
+"logradouro*",
+"numero*",
+"complemento*",
+"bairro*",
+"cidade*",
+"estado*",
+"cep*",
+"telefone*",
+"email*",
+"website"
+]
+},
+{
+"grupo": "Regional",
+"metodo": "GET",
+"rota": "/listar/regional/:situacao",
+"titulo": "Listar",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/alterar/veiculo",
+"titulo": "Alterar",
+"campos": [
+"codigo_veiculo*",
+"codigo_associado",
+"codigo_cooperativa",
+"codigo_voluntario",
+"ano_fabricacao",
+"ano_modelo",
+"modelo",
+"placa",
+"chassi",
+"renavam",
+"numero_motor",
+"kilometragem",
+"cilindrada",
+"quantidade_portas",
+"cambio",
+"codigo_fipe",
+"codigo_cota",
+"codigo_conta",
+"dia_vencimento",
+"codigo_alienacao",
+"codigo_combustivel",
+"codigo_cor",
+"codigo_tipo_veiculo",
+"codigo_categoria_veiculo",
+"logradouro",
+"numero",
+"complemento",
+"bairro",
+"cidade",
+"estado",
+"codigo_indicacao_externa",
+"cep",
+"numero_nota",
+"data_emissao_nota",
+"valor_fipe_protegido",
+"porcentagem_fipe_protegido",
+"observacao",
+"valor_repasse",
+"forma_pagamento_repasse",
+"codigo_modelo",
+"gerar_cobranca_taxa_adm",
+"gerar_cobranca_rateio",
+"codigo_classificacao",
+"valor_fipe",
+"codigo_tipo_envio_boleto",
+"data_contrato"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/veiculo/alterar-situacao-para/:codigo_situacao/:codigo_veiculo",
+"titulo": "Alterar situação",
+"campos": [
+"codigo_situacao*",
+"codigo_veiculo*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/veiculo/buscar/:placaOuChassi",
+"titulo": "Buscar",
+"campos": [
+"placaOuChassi*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/buscar/rateio-medio",
+"titulo": "Buscar rateio",
+"campos": [
+"valor_fipe*",
+"codigo_regional*",
+"codigo_tipo_veiculo*",
+"quantidade_meses_media"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/buscar/situacao-financeira-veiculo/:codigo_ou_placa",
+"titulo": "Buscar situação Financeira",
+"campos": [
+"codigo_ou_placa*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/veiculo/cadastrar",
+"titulo": "Cadastrar",
+"campos": [
+"codigo_associado*",
+"ano_fabricacao*",
+"ano_modelo*",
+"codigo_tipo_veiculo*",
+"kilometragem*",
+"chassi*",
+"numero_motor*",
+"codigo_fipe*",
+"codigo_cooperativa",
+"dia_vencimento*",
+"codigo_voluntario*",
+"codigo_externo",
+"codigo_modelo",
+"placa",
+"renavam",
+"cilindrada",
+"quantidade_portas",
+"cambio",
+"codigo_cota",
+"codigo_conta",
+"codigo_alienacao",
+"codigo_combustivel",
+"codigo_cor",
+"codigo_categoria_veiculo",
+"logradouro",
+"numero",
+"complemento",
+"bairro",
+"cidade",
+"estado",
+"cep",
+"numero_nota",
+"data_emissao_nota",
+"data_contrato",
+"valor_adesao",
+"codigo_veiculo_indicador",
+"codigo_forma_pagamento_adesao",
+"codigo_depreciacao",
+"valor_fipe_protegido",
+"valor_fixo",
+"porcentagem_fipe_protegido",
+"participacao",
+"codigo_tipo_envio_boleto",
+"quantidade_passageiros",
+"codigo_indicacao_externa",
+"observacao",
+"valor_repasse",
+"forma_pagamento_repasse",
+"exibir_extrato_rateio",
+"gerar_cobranca_rateio",
+"formato_cobranca",
+"qtd_parcela",
+"produtos",
+"implementos",
+"valor_fipe"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/veiculo/foto/cadastrar",
+"titulo": "Cadastrar foto",
+"campos": [
+"codigo_veiculo*",
+"codigo_beneficiario*",
+"codigo_evento*",
+"foto*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/cadastrar/agregado",
+"titulo": "Cadastrar Agregado",
+"campos": [
+"codigo_veiculo_vinculado*",
+"ano_fabricacao*",
+"ano_modelo*",
+"chassi*",
+"numero_motor*",
+"codigo_tipo_veiculo*",
+"codigo_voluntario",
+"codigo_externo",
+"codigo_modelo",
+"placa",
+"renavam",
+"kilometragem",
+"cilindrada",
+"cambio",
+"codigo_fipe",
+"codigo_cota",
+"dia_vencimento",
+"codigo_alienacao",
+"codigo_combustivel",
+"codigo_cor",
+"codigo_categoria_veiculo",
+"logradouro",
+"numero",
+"complemento",
+"bairro",
+"cidade",
+"estado",
+"cep",
+"numero_nota",
+"data_emissao_nota",
+"data_contrato",
+"valor_adesao",
+"codigo_veiculo_indicador",
+"codigo_forma_pagamento_adesao",
+"codigo_depreciacao",
+"valor_fipe_protegido"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/alienacao/:situacao",
+"titulo": "Listar Alienação",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/listar/alteracao-veiculos",
+"titulo": "Listar Alterações de Veículos",
+"campos": [
+"data_inicial*",
+"data_final*",
+"ultima_alteracao",
+"campos*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/categoria-veiculo/:codigo_tipo/:situacao",
+"titulo": "Listar categoria",
+"campos": [
+"codigo_tipo*",
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/combustivel/:situacao",
+"titulo": "Listar combustível",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/conta/:situacao",
+"titulo": "Listar conta bancária",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/cor/:situacao",
+"titulo": "Listar cor",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/depreciacao/:situacao",
+"titulo": "Listar Depreciação",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/situacao/:situacao",
+"titulo": "Listar situação",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/buscar/situacao-veiculo/:placaOuChassi",
+"titulo": "Buscar situação veículo",
+"campos": [
+"placaOuChassi*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/tipo-adesao/listar/:situacao",
+"titulo": "Listar Tipo Adesão",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/tipo-veiculo/:situacao",
+"titulo": "Listar tipo",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/listar/veiculo",
+"titulo": "Listar",
+"campos": [
+"codigo_situacao*",
+"data_contrato",
+"inicio_paginacao*",
+"quantidade_por_pagina*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/veiculo/listar-veiculo-produto/:codigo_situacao",
+"titulo": "Lista prod. vinculado",
+"campos": [
+"codigo_situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/forma-pagamento/:situacao",
+"titulo": "Listar Forma Pag.",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/implemento-vinculado/listar/:codigoOuPlaca",
+"titulo": "Listar Implementos Vinculados",
+"campos": [
+"codigoOuPlaca*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/implemento/:situacao",
+"titulo": "Listar Implementos",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/listar/marca/:situacao",
+"titulo": "Listar marca",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/veiculo/produto/remover",
+"titulo": "Remover produto",
+"campos": [
+"codigo_veiculo*",
+"lista_codigo_produto*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "GET",
+"rota": "/produto-adicional/remover/:codigo_veiculo/:codigo_produto_adicional",
+"titulo": "Remover Prod. Adicional",
+"campos": [
+"codigo_veiculo*",
+"codigo_produto_adicional*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/vincular/implemento",
+"titulo": "Vincular implemento",
+"campos": [
+"codigo_veiculo*",
+"codigo_implemento*",
+"valor_fipe",
+"porcentagem",
+"somar_fipe"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/veiculo/vincular/produto",
+"titulo": "Vincular produto",
+"campos": [
+"codigo_veiculo*",
+"lista_codigo_produto*"
+]
+},
+{
+"grupo": "Veiculo",
+"metodo": "POST",
+"rota": "/modelo/listar",
+"titulo": "Listar Modelos",
+"campos": [
+"situacao*",
+"inicio_paginacao*",
+"quantidade_por_pagina*"
+]
+},
+{
+"grupo": "Vistoria",
+"metodo": "POST",
+"rota": "/cadastrar/vistoria",
+"titulo": "Cadastrar vistoria",
+"campos": [
+"codigo_associado*",
+"codigo_vistoriador*",
+"codigo_tipo_vistoria*",
+"data_vistoria*",
+"codigo_veiculo",
+"codigo_estado_pneu",
+"valor_vistoria",
+"observacao",
+"longitude",
+"latitude"
+]
+},
+{
+"grupo": "Vistoria",
+"metodo": "GET",
+"rota": "/listar/estado-pneu/:situacao",
+"titulo": "Listar tipo pneu",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Vistoria",
+"metodo": "GET",
+"rota": "/listar/tipo-foto/:situacao",
+"titulo": "Listar tipo foto",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Vistoria",
+"metodo": "GET",
+"rota": "/listar/tipo-vistoria/:situacao",
+"titulo": "Listar Tipo Vistoria.",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Vistoria",
+"metodo": "GET",
+"rota": "/listar/vistoriador/:situacao",
+"titulo": "Listar Vistoriador",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "GET",
+"rota": "/buscar/voluntario/:cpdOuCodigo",
+"titulo": "Buscar",
+"campos": [
+"cpfOuCodigo*"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "POST",
+"rota": "/voluntario/cadastrar",
+"titulo": "Cadastrar",
+"campos": [
+"nome*",
+"cpf*",
+"celular*",
+"telefone_comercial*",
+"formato_pagamento*",
+"valor_pagamento*",
+"cooperativas*",
+"codigo_classificacao",
+"logradouro",
+"numero",
+"complemento",
+"bairro",
+"cidade",
+"estado",
+"cep",
+"email",
+"obs"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "POST",
+"rota": "/voluntario/cadastrar-cooperativa/",
+"titulo": "Vincular à cooperativa",
+"campos": [
+"codigo_voluntario*",
+"array_cooperativas*"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "POST",
+"rota": "/voluntario/excluir-cooperativa/",
+"titulo": "Remover de cooperativa",
+"campos": [
+"codigo_voluntario*",
+"array_cooperativas*"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "POST",
+"rota": "/listar/alteracao-voluntario/",
+"titulo": "Listar Alterações de Voluntários",
+"campos": [
+"data_inicial*",
+"data_final*",
+"ultima_alteracao*",
+"campos*"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "POST",
+"rota": "/listar/indicacao/",
+"titulo": "Listar indicações",
+"campos": [
+"codigo_voluntario*",
+"data_indicacao_inicial",
+"data_indicacao_final"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "GET",
+"rota": "/listar/situacao-adesao-voluntario/:codigo_voluntario",
+"titulo": "Listar situação adesão",
+"campos": [
+"codigo_voluntario*"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "GET",
+"rota": "/listar/voluntario/:situacao",
+"titulo": "Listar",
+"campos": [
+"situacao*"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "POST",
+"rota": "/listar/voluntario-por-data-cadastro",
+"titulo": "Listar voluntário por data cadastro",
+"campos": [
+"filtrar_data*",
+"data_cadastro_inicial*",
+"data_cadastro_final*"
+]
+},
+{
+"grupo": "Voluntario",
+"metodo": "POST",
+"rota": "/listar/placas-por-voluntario/",
+"titulo": "Listar placas",
+"campos": [
+"codigo_voluntario*",
+"participa_fechamento*",
+"tipo_retorno*",
+"data_cadastro_inicial",
+"data_cadastro_final",
+"data_contrato_inicial",
+"data_contrato_final"
+]
+}
+]

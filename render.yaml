@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: paloma-jrpv
+    runtime: docker
+    plan: starter            # sempre ligado (o plano free dorme e perde mensagens)
+    region: ohio
+    healthCheckPath: /saude
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: URL_PUBLICA
+        sync: false
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: WEBHOOK_SEGREDO
+        sync: false
+      - key: ADMIN_TELEFONE
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: UAZAPI_URL
+        value: https://jrpvg.uazapi.com
+      - key: UAZAPI_ADMIN_TOKEN
+        sync: false
+      - key: UAZAPI_INSTANCIA_TOKEN
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        sync: false
+      - key: HINOVA_TOKEN_API
+        sync: false
+      - key: HINOVA_USUARIO
+        sync: false
+      - key: HINOVA_SENHA
+        sync: false
+      - key: POWERCRM_TOKEN
+        sync: false

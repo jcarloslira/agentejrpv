@@ -1,0 +1,2388 @@
+{
+ "openapi": "3.0.3",
+ "info": {
+  "title": "PowerCrm Api Rest (consolidado)",
+  "version": "1.0"
+ },
+ "servers": [
+  {
+   "url": "https://api.powercrm.com.br/"
+  }
+ ],
+ "paths": {
+  "/api/quotation/add-activity": {
+   "post": {
+    "tags": [
+     "Atividade"
+    ],
+    "summary": "Cadastrar uma atividade",
+    "operationId": "addActivityUsingPOST",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AddActivityRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Criado com sucesso",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object"
+        }
+       }
+      }
+     },
+     "412": {
+      "description": "Erro de validação",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorVO"
+        }
+       }
+      }
+     },
+     "500": {
+      "description": "Um erro interno do servidor foi gerado"
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/addAffiliateSGA": {
+   "post": {
+    "tags": [
+     "Afiliado"
+    ],
+    "summary": "Cadastrar SGA",
+    "operationId": "addAffiliateSGAUsingPOST",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AffiliateAddRequestSGA"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/addAffiliate": {
+   "post": {
+    "tags": [
+     "Afiliado"
+    ],
+    "summary": "Cadastrar",
+    "operationId": "addAffiliateUsingPOST",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AffiliateAddRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/send-attachment": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Enviar anexo para inspeção",
+    "description": "Adiciona um arquivo anexo à cotação especificada. Pode ser utilizado para enviar imagens, documentos ou outros arquivos relevantes ao processo de cotação ou vistoria.",
+    "operationId": "addAttachmentInspectionUsingPOST",
+    "parameters": [
+     {
+      "name": "quotationCode",
+      "in": "query",
+      "description": "Código da cotação à qual a observação será associada.",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/octet-stream": {
+       "schema": {
+        "type": "string",
+        "format": "binary"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "*/*": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/send-observation": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Enviar observação para cotação",
+    "description": "Adiciona uma observação vinculada a uma cotação existente, permitindo registrar comentários, links, notas técnicas ou qualquer informação adicional relevante ao processo de inspeção/vistoria.",
+    "operationId": "addObservationQuotationUsingPOST",
+    "parameters": [
+     {
+      "name": "quotationCode",
+      "in": "query",
+      "description": "Código da cotação à qual a observação será associada.",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "observation",
+      "in": "query",
+      "description": "Texto da observação a ser adicionada.",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Observação registrada com sucesso!",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/send-photo": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Adicionar Foto na Inspeção",
+    "operationId": "addPhotoInspectionUsingPOST",
+    "parameters": [
+     {
+      "name": "inspectionId",
+      "in": "query",
+      "description": "Id da Inspeção",
+      "required": false,
+      "style": "form",
+      "schema": {
+       "type": "integer",
+       "format": "int64"
+      }
+     }
+    ],
+    "requestBody": {
+     "content": {
+      "application/octet-stream": {
+       "schema": {
+        "type": "string",
+        "format": "binary"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "*/*": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/add-tag": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Adicionar Tag",
+    "operationId": "addTagUsingPOST",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/AddTagApiRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/bmy": {
+   "get": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Buscar os anos do modelo da marca",
+    "operationId": "bmyUsingGET",
+    "parameters": [
+     {
+      "name": "cb",
+      "in": "query",
+      "description": "Id da marca do carro",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "integer",
+       "format": "int64"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ItemIdString"
+         }
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/cb": {
+   "get": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Buscar Marcas dos Carros",
+    "operationId": "cbUsingGET",
+    "parameters": [
+     {
+      "name": "type",
+      "in": "query",
+      "description": "Tipo dos veículos <br> 1 - Carro ou Utilitário Pequeno <br> 2 - Moto <br> 3 - Caminhão ou Micro-ônibus",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "integer",
+       "format": "int32"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ItemIdString"
+         }
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/cmby": {
+   "get": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Buscar modelos dos carros",
+    "operationId": "cmbyUsingGET",
+    "parameters": [
+     {
+      "name": "cb",
+      "in": "query",
+      "description": "Id da marca do carro",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "integer",
+       "format": "int64"
+      }
+     },
+     {
+      "name": "cy",
+      "in": "query",
+      "description": "Id do ano do modelo da marca",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "integer",
+       "format": "int32"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ItemIdString"
+         }
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/ct": {
+   "get": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Buscar as cidades",
+    "operationId": "ctUsingGET",
+    "parameters": [
+     {
+      "name": "st",
+      "in": "query",
+      "description": "Id do estado",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "integer",
+       "format": "int64"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ItemIdString"
+         }
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/fetchAffiliate": {
+   "post": {
+    "tags": [
+     "Afiliado"
+    ],
+    "summary": "Pesquisar",
+    "operationId": "fetchAffiliateUsingPOST",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/FetchAffiliateStatementDetailRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/consultant/powerlink": {
+   "post": {
+    "tags": [
+     "Consultor"
+    ],
+    "summary": "Retorna o PowerLink do consultor por email ou telefone",
+    "description": "Consulta PowerLink do consultor a partir de e-mail ou telefone. Os valores são normalizados e validados antes da busca.",
+    "operationId": "getConsultantPowerLinkUsingPOST",
+    "requestBody": {
+     "description": "Informe e-mail ou telefone (ao menos um dos campos).",
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ConsultantPowerLinkRequest"
+       },
+       "examples": {
+        "searchByEmail": {
+         "summary": "Busca pelo e-mail do consultor",
+         "value": {
+          "email": "consultor@empresa.com.br"
+         }
+        },
+        "searchByPhone": {
+         "summary": "Busca pelo telefone do consultor",
+         "value": {
+          "phone": "(31) 99999-8888"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Consulta realizada com sucesso.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConsultantPowerLinkResponse"
+        },
+        "examples": {
+         "success": {
+          "summary": "Consultor encontrado",
+          "value": {
+           "powerlinkId": "abc123",
+           "name": "Fulano da Silva",
+           "email": "consultor@empresa.com.br",
+           "phone": "(31) 99999-8888",
+           "powerlinks": [
+            {
+             "name": "Powerlink principal",
+             "link": "https://app.powercrm.com.br/powerlink?id=abc123"
+            }
+           ],
+           "powerlinkAffiliate": "https://app.powercrm.com.br/affiliateFormPage/abc123"
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Informe email ou telefone usando os campos \"email\" ou \"phone\" para realizar a busca.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "message": {
+           "type": "string"
+          }
+         }
+        },
+        "examples": {
+         "missingContact": {
+          "value": {
+           "message": "Informe email ou telefone usando os campos \"email\" ou \"phone\" para realizar a busca."
+          }
+         }
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Consultor não encontrado.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "message": {
+           "type": "string"
+          }
+         }
+        },
+        "examples": {
+         "notFound": {
+          "value": {
+           "message": "Consultor não encontrado."
+          }
+         }
+        }
+       }
+      }
+     },
+     "500": {
+      "description": "Erro interno ao buscar o consultor.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "message": {
+           "type": "string"
+          }
+         }
+        },
+        "examples": {
+         "internalError": {
+          "value": {
+           "message": "Não foi possível buscar o consultor no momento. Tente novamente mais tarde."
+          }
+         }
+        }
+       }
+      }
+     },
+     "503": {
+      "description": "Serviço indisponível.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "properties": {
+          "message": {
+           "type": "string"
+          }
+         }
+        },
+        "examples": {
+         "serviceUnavailable": {
+          "value": {
+           "message": "Serviço indisponível."
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/card/move": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Move o card de uma negociação para uma etapa específica do pipeline",
+    "operationId": "moveCardQuotationUsingPOST",
+    "parameters": [
+     {
+      "name": "quotationCode",
+      "in": "query",
+      "description": "Código da cotação",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "cardColumn",
+      "in": "query",
+      "description": "Coluna de destino do pipeline",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "enum": [
+        "RECEIVED",
+        "IN_NEGOTIATION",
+        "INSPECTION",
+        "RELEASED_FOR_REGISTRATION",
+        "COMPLETED"
+       ]
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Cotação movida para a coluna especificada.",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "string"
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "Coluna inválida",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorVO"
+        }
+       }
+      }
+     },
+     "412": {
+      "description": "Erro de pré-condição",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorVO"
+        }
+       }
+      }
+     },
+     "500": {
+      "description": "Erro interno ao mover o card",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorVO"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/negotiation/{negotiationCode}": {
+   "get": {
+    "tags": [
+     "Negociação"
+    ],
+    "summary": "Pesquisar",
+    "operationId": "negotiationGetUsingGET",
+    "parameters": [
+     {
+      "name": "negotiationCode",
+      "in": "path",
+      "description": "Código da negociação",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/open-inspection": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Abrir uma inspeção",
+    "operationId": "openInspectionUsingPOST",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/InspectionOpenApiRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/plansQuotation": {
+   "get": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Buscar os planos de uma cotação (V2)",
+    "description": "Busca os detalhes completos e refatorados dos planos associados a uma cotação. Esta é a V2 do endpoint, substituindo a versão legada `/api/quotation/plansQuotationApi`.",
+    "operationId": "plansQuotationUsingGET_V2",
+    "parameters": [
+     {
+      "name": "quotationCode",
+      "in": "query",
+      "description": "Código da cotação",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Busca realizada com sucesso",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuotationPlansResponse"
+        }
+       }
+      }
+     },
+     "404": {
+      "description": "Cotação não encontrada",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorVO"
+        }
+       }
+      }
+     },
+     "500": {
+      "description": "Um erro interno do servidor foi gerado"
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/add": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Cadastro",
+    "operationId": "quotationAddUsingPOST",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/QuotationAddRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Criado com sucesso",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/QuotationResult"
+        }
+       }
+      }
+     },
+     "412": {
+      "description": "Erro de validação",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorVO"
+        }
+       }
+      }
+     },
+     "500": {
+      "description": "Um erro interno do servidor foi gerado"
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/quotationConfirmCashReceivedApi": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Atualizar o pagamento da taxa de confirmação",
+    "operationId": "quotationConfirmCashReceivedApiUsingPOST",
+    "parameters": [
+     {
+      "name": "cardId",
+      "in": "query",
+      "description": "Id do card",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/quotationFipeApi": {
+   "get": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Buscar as informações da FIPE de uma cotação",
+    "operationId": "quotationFipeApiUsingGET",
+    "parameters": [
+     {
+      "name": "quotationCode",
+      "in": "query",
+      "description": "Código da Cotação",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/{quotationCode}": {
+   "get": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Pesquisar",
+    "operationId": "quotationGetUsingGET",
+    "parameters": [
+     {
+      "name": "quotationCode",
+      "in": "path",
+      "description": "Código da cotação",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/quotationTrackerConfirmCashReceivedApi": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Atualizar o pagamento do rastreador",
+    "operationId": "quotationTrackerConfirmCashReceivedApiUsingPOST",
+    "parameters": [
+     {
+      "name": "cardId",
+      "in": "query",
+      "description": "Id do Card",
+      "required": true,
+      "style": "form",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/update": {
+   "post": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Alterar",
+    "operationId": "quotationUpdateUsingPUT",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/QuotationUpdateRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/report/db": {
+   "post": {
+    "tags": [
+     "Relatórios"
+    ],
+    "summary": "Relatório do banco de dados",
+    "operationId": "reportDbUsingPOST",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ReportDbRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResponseEntity"
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  },
+  "/api/quotation/stt": {
+   "get": {
+    "tags": [
+     "Cotação"
+    ],
+    "summary": "Listar todos os estados",
+    "operationId": "sttUsingGET",
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ItemIdString"
+         }
+        }
+       }
+      }
+     }
+    },
+    "security": [
+     {
+      "apiKey": [
+       "global"
+      ]
+     }
+    ]
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "AddActivityRequest": {
+    "title": "AddActivityRequest",
+    "required": [
+     "description",
+     "quotationCode",
+     "scheduled",
+     "type"
+    ],
+    "type": "object",
+    "properties": {
+     "description": {
+      "type": "string",
+      "description": "Descrição da atividade"
+     },
+     "quotationCode": {
+      "type": "string",
+      "description": "Código da cotação"
+     },
+     "scheduled": {
+      "type": "string",
+      "description": "Data da tarefa <br> formato - yyyy-MM-dd HH:mm:ss",
+      "example": "2022-01-01 12:00:00"
+     },
+     "type": {
+      "type": "integer",
+      "description": "Tipo da atividade <br> 2 - telefone <br> 3 - whatsapp <br> 4 - e-mail <br> 5 - mapa",
+      "format": "int64",
+      "enum": [
+       2,
+       3,
+       4,
+       5
+      ]
+     }
+    }
+   },
+   "ErrorVO": {
+    "title": "ErrorVO",
+    "type": "object",
+    "properties": {
+     "errors": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "AffiliateAddRequestSGA": {
+    "title": "AffiliateAddRequestSGA",
+    "type": "object",
+    "properties": {
+     "cpf": {
+      "description": "CPF",
+      "type": "string"
+     },
+     "email": {
+      "description": "E-mail",
+      "type": "string"
+     },
+     "name": {
+      "description": "Nome",
+      "type": "string"
+     },
+     "phone": {
+      "description": "Telefone",
+      "type": "string"
+     }
+    }
+   },
+   "ResponseEntity": {
+    "title": "ResponseEntity",
+    "type": "object",
+    "properties": {
+     "body": {
+      "type": "object"
+     },
+     "statusCode": {
+      "type": "string",
+      "enum": [
+       "ACCEPTED",
+       "ALREADY_REPORTED",
+       "BAD_GATEWAY",
+       "BAD_REQUEST",
+       "BANDWIDTH_LIMIT_EXCEEDED",
+       "CHECKPOINT",
+       "CONFLICT",
+       "CONTINUE",
+       "CREATED",
+       "DESTINATION_LOCKED",
+       "EXPECTATION_FAILED",
+       "FAILED_DEPENDENCY",
+       "FORBIDDEN",
+       "FOUND",
+       "GATEWAY_TIMEOUT",
+       "GONE",
+       "HTTP_VERSION_NOT_SUPPORTED",
+       "IM_USED",
+       "INSUFFICIENT_SPACE_ON_RESOURCE",
+       "INSUFFICIENT_STORAGE",
+       "INTERNAL_SERVER_ERROR",
+       "I_AM_A_TEAPOT",
+       "LENGTH_REQUIRED",
+       "LOCKED",
+       "LOOP_DETECTED",
+       "METHOD_FAILURE",
+       "METHOD_NOT_ALLOWED",
+       "MOVED_PERMANENTLY",
+       "MOVED_TEMPORARILY",
+       "MULTIPLE_CHOICES",
+       "MULTI_STATUS",
+       "NETWORK_AUTHENTICATION_REQUIRED",
+       "NON_AUTHORITATIVE_INFORMATION",
+       "NOT_ACCEPTABLE",
+       "NOT_EXTENDED",
+       "NOT_FOUND",
+       "NOT_IMPLEMENTED",
+       "NOT_MODIFIED",
+       "NO_CONTENT",
+       "OK",
+       "PARTIAL_CONTENT",
+       "PAYLOAD_TOO_LARGE",
+       "PAYMENT_REQUIRED",
+       "PERMANENT_REDIRECT",
+       "PRECONDITION_FAILED",
+       "PRECONDITION_REQUIRED",
+       "PROCESSING",
+       "PROXY_AUTHENTICATION_REQUIRED",
+       "REQUESTED_RANGE_NOT_SATISFIABLE",
+       "REQUEST_ENTITY_TOO_LARGE",
+       "REQUEST_HEADER_FIELDS_TOO_LARGE",
+       "REQUEST_TIMEOUT",
+       "REQUEST_URI_TOO_LONG",
+       "RESET_CONTENT",
+       "SEE_OTHER",
+       "SERVICE_UNAVAILABLE",
+       "SWITCHING_PROTOCOLS",
+       "TEMPORARY_REDIRECT",
+       "TOO_EARLY",
+       "TOO_MANY_REQUESTS",
+       "UNAUTHORIZED",
+       "UNAVAILABLE_FOR_LEGAL_REASONS",
+       "UNPROCESSABLE_ENTITY",
+       "UNSUPPORTED_MEDIA_TYPE",
+       "UPGRADE_REQUIRED",
+       "URI_TOO_LONG",
+       "USE_PROXY",
+       "VARIANT_ALSO_NEGOTIATES"
+      ]
+     },
+     "statusCodeValue": {
+      "type": "integer",
+      "format": "int32"
+     }
+    }
+   },
+   "AffiliateAddRequest": {
+    "title": "AffiliateAddRequest",
+    "type": "object",
+    "properties": {
+     "cpf": {
+      "description": "CPF",
+      "type": "string"
+     },
+     "email": {
+      "description": "E-mail",
+      "type": "string"
+     },
+     "name": {
+      "description": "Nome",
+      "type": "string"
+     },
+     "phone": {
+      "description": "Telefone",
+      "type": "string"
+     },
+     "status": {
+      "description": "Status",
+      "type": "string",
+      "enum": [
+       "BLOCKED",
+       "ACTIVE",
+       "PENDING",
+       "REFUSED"
+      ]
+     }
+    }
+   },
+   "AddTagApiRequest": {
+    "title": "AddTagApiRequest",
+    "required": [
+     "quotationCode",
+     "tagId"
+    ],
+    "type": "object",
+    "properties": {
+     "quotationCode": {
+      "description": "Código da cotação",
+      "type": "string"
+     },
+     "tagId": {
+      "description": "Id da TAG",
+      "type": "integer",
+      "format": "int64"
+     }
+    }
+   },
+   "ItemIdString": {
+    "title": "ItemIdString",
+    "type": "object",
+    "properties": {
+     "back": {
+      "type": "string"
+     },
+     "id": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "negotiationId": {
+      "type": "string"
+     },
+     "quotationId": {
+      "type": "string"
+     },
+     "text": {
+      "type": "string"
+     }
+    }
+   },
+   "FetchAffiliateStatementDetailRequest": {
+    "title": "FetchAffiliateStatementDetailRequest",
+    "type": "object",
+    "properties": {
+     "begin": {
+      "description": "Data inicial <br> formato - yyyy-MM-dd",
+      "example": "2022-01-01",
+      "type": "string"
+     },
+     "email": {
+      "type": "string"
+     },
+     "end": {
+      "description": "Data final <br> formato - yyyy-MM-dd",
+      "example": "2022-01-01",
+      "type": "string"
+     },
+     "filterStatus": {
+      "description": "Tipo do filtro data <br> 1 - Criação <br> 2 - Pagamento <br> 3 - Cadastro SGA",
+      "format": "int64",
+      "enum": [
+       1,
+       2,
+       3
+      ]
+     }
+    }
+   },
+   "ConsultantPowerLinkRequest": {
+    "title": "ConsultantPowerLinkRequest",
+    "description": "Dados para busca de consultor. Pelo menos um dos campos deve ser informado.",
+    "type": "object",
+    "anyOf": [
+     {
+      "required": [
+       "email"
+      ]
+     },
+     {
+      "required": [
+       "phone"
+      ]
+     }
+    ],
+    "properties": {
+     "email": {
+      "description": "E-mail do consultor",
+      "type": "string",
+      "format": "email",
+      "example": "consultor@empresa.com.br"
+     },
+     "phone": {
+      "description": "Telefone do consultor (somente dígitos)",
+      "type": "string",
+      "example": "11999998888"
+     }
+    },
+    "example": {
+     "email": "consultor@empresa.com.br",
+     "phone": "11999998888"
+    }
+   },
+   "ConsultantPowerLinkResponse": {
+    "title": "ConsultantPowerLinkResponse",
+    "type": "object",
+    "required": [
+     "powerlinkId",
+     "name",
+     "powerlinks",
+     "powerlinkAffiliate"
+    ],
+    "properties": {
+     "powerlinkId": {
+      "description": "Identificador codificado do consultor na empresa",
+      "type": "string"
+     },
+     "name": {
+      "description": "Nome do consultor",
+      "type": "string"
+     },
+     "email": {
+      "description": "E-mail do consultor",
+      "type": "string"
+     },
+     "phone": {
+      "description": "Telefone do consultor",
+      "type": "string"
+     },
+     "powerlinks": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/PowerlinkItem"
+      }
+     },
+     "powerlinkAffiliate": {
+      "description": "Link de afiliado com o id do consultor",
+      "type": "string"
+     }
+    },
+    "example": {
+     "powerlinkId": "abc123",
+     "name": "Fulano da Silva",
+     "email": "consultor@empresa.com.br",
+     "phone": "11999998888",
+     "powerlinks": [
+      {
+       "name": "Powerlink principal",
+       "link": "https://app.powercrm.com.br/powerlink?id=abc123"
+      }
+     ],
+     "powerlinkAffiliate": "https://app.powercrm.com.br/affiliateFormPage/abc123"
+    }
+   },
+   "PowerlinkItem": {
+    "title": "PowerlinkItem",
+    "type": "object",
+    "properties": {
+     "name": {
+      "description": "Nome do powerlink",
+      "type": "string"
+     },
+     "link": {
+      "description": "URL do powerlink",
+      "type": "string"
+     }
+    }
+   },
+   "InspectionOpenApiRequest": {
+    "title": "Requisição de Abertura de Inspeção",
+    "description": "Objeto de requisição utilizado para iniciar uma inspeção vinculada a uma cotação existente.",
+    "type": "object",
+    "required": [
+     "quotationCode"
+    ],
+    "properties": {
+     "quotationCode": {
+      "type": "string",
+      "description": "Código único da cotação à qual a inspeção será vinculada. Esse código deve corresponder a uma cotação previamente criada no sistema."
+     },
+     "observation": {
+      "type": "string",
+      "description": "Observações iniciais relacionadas à inspeção. Pode conter informações adicionais, notas técnicas ou qualquer detalhe relevante."
+     }
+    }
+   },
+   "OptionalItem": {
+    "title": "OptionalItem",
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "integer"
+     },
+     "name": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "value": {
+      "type": "number"
+     },
+     "selected": {
+      "type": "boolean"
+     }
+    }
+   },
+   "PlanItem": {
+    "title": "PlanItem",
+    "type": "object",
+    "properties": {
+     "id": {
+      "type": "integer"
+     },
+     "name": {
+      "type": "string"
+     },
+     "description": {
+      "type": "string"
+     },
+     "value": {
+      "type": "number"
+     }
+    }
+   },
+   "QuotationPlan": {
+    "title": "QuotationPlan",
+    "type": "object",
+    "properties": {
+     "planId": {
+      "type": "integer"
+     },
+     "name": {
+      "type": "string"
+     },
+     "tablePricePlanId": {
+      "type": "integer"
+     },
+     "price": {
+      "type": "number"
+     },
+     "priceValueWouldBe": {
+      "type": "number",
+      "nullable": true
+     },
+     "accessPrice": {
+      "type": "number"
+     },
+     "trackerIncluded": {
+      "type": "boolean"
+     },
+     "trackerPrice": {
+      "type": "number"
+     },
+     "hideFranchise": {
+      "type": "boolean"
+     },
+     "franchisePrice": {
+      "type": "number"
+     },
+     "active": {
+      "type": "boolean"
+     },
+     "isSelected": {
+      "type": "boolean"
+     },
+     "coverages": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/PlanItem"
+      }
+     },
+     "assistances": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/PlanItem"
+      }
+     },
+     "benefits": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/PlanItem"
+      }
+     },
+     "optionals": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/OptionalItem"
+      }
+     },
+     "excludedServices": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/PlanItem"
+      }
+     }
+    }
+   },
+   "QuotationPlansResponse": {
+    "title": "QuotationPlansResponse",
+    "type": "object",
+    "properties": {
+     "quotationCode": {
+      "type": "string"
+     },
+     "acquisitionPrice": {
+      "type": "number"
+     },
+     "trackerPrice": {
+      "type": "number"
+     },
+     "monthlyPrice": {
+      "type": "number"
+     },
+     "quoteParticipationPrice": {
+      "type": "number"
+     },
+     "originalAcquisitionPrice": {
+      "type": "number"
+     },
+     "originalTrackerPrice": {
+      "type": "number"
+     },
+     "originalMonthlyPrice": {
+      "type": "number"
+     },
+     "acquisitionPaid": {
+      "type": "boolean"
+     },
+     "trackerPaid": {
+      "type": "boolean"
+     },
+     "originalQuoteParticipationPrice": {
+      "type": "number"
+     },
+     "selectedOptionalsTotalPrice": {
+      "type": "number"
+     },
+     "plans": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/QuotationPlan"
+      }
+     }
+    }
+   },
+   "QuotationAddRequest": {
+    "title": "QuotationAddRequest",
+    "required": [
+     "name"
+    ],
+    "type": "object",
+    "properties": {
+     "affiliateId": {
+      "type": "string",
+      "description": "Id do afiliado"
+     },
+     "chassi": {
+      "type": "string",
+      "description": "Chassi"
+     },
+     "city": {
+      "type": "integer",
+      "description": "Id da cidade",
+      "format": "int64"
+     },
+     "coop": {
+      "type": "integer",
+      "description": "Id da cooperativa",
+      "format": "int64"
+     },
+     "discount": {
+      "type": "string",
+      "description": "Desconto"
+     },
+     "email": {
+      "type": "string",
+      "description": "Email"
+     },
+     "leadSource": {
+      "type": "integer",
+      "description": "Id da lead",
+      "format": "int64"
+     },
+     "mdl": {
+      "type": "integer",
+      "description": "Id do modelo do veículo",
+      "format": "int64"
+     },
+     "mdlYr": {
+      "type": "integer",
+      "description": "Id do ano modelo",
+      "format": "int64"
+     },
+     "name": {
+      "type": "string",
+      "description": "Nome"
+     },
+     "origemId": {
+      "type": "integer",
+      "description": "Id da origem",
+      "format": "int64"
+     },
+     "phone": {
+      "type": "string",
+      "description": "Telefone"
+     },
+     "plts": {
+      "type": "string",
+      "description": "Placa"
+     },
+     "pwrlnk": {
+      "type": "string",
+      "description": "Powerlink"
+     },
+     "registration": {
+      "type": "string",
+      "description": "Documento"
+     },
+     "slsmnId": {
+      "type": "string",
+      "description": "Código do vendedor"
+     },
+     "slsmnNwId": {
+      "type": "string",
+      "description": "Novo Código do vendedor"
+     },
+     "workVehicle": {
+      "type": "boolean",
+      "description": "Veiculo de trabalho",
+      "example": false
+     }
+    }
+   },
+   "QuotationResponse": {
+    "title": "QuotationResponse",
+    "type": "object",
+    "properties": {
+     "addressAddress": {
+      "type": "string"
+     },
+     "addressComplement": {
+      "type": "string"
+     },
+     "addressNeighborhood": {
+      "type": "string"
+     },
+     "addressNumber": {
+      "type": "string"
+     },
+     "addressZipcode": {
+      "type": "string"
+     },
+     "affiliateId": {
+      "type": "string"
+     },
+     "birthdate": {
+      "type": "string"
+     },
+     "carModel": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "carModelYear": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "category": {
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      }
+     },
+     "chassi": {
+      "type": "string"
+     },
+     "city": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "clean": {
+      "type": "boolean"
+     },
+     "cnh": {
+      "type": "string"
+     },
+     "cnhExpiration": {
+      "type": "string"
+     },
+     "color": {
+      "type": "string"
+     },
+     "coop": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "depreciationId": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "discount": {
+      "type": "string"
+     },
+     "email": {
+      "type": "string"
+     },
+     "engineNumber": {
+      "type": "string"
+     },
+     "expeditionDate": {
+      "type": "string"
+     },
+     "expirationDay": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "fabricationYear": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "firstQualification": {
+      "type": "string"
+     },
+     "forceVehicleCityChange": {
+      "type": "boolean"
+     },
+     "fuel": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "fullName": {
+      "type": "string"
+     },
+     "gender": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "kmtr": {
+      "type": "string"
+     },
+     "leadSource": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "mdl": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "mdlYr": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "name": {
+      "type": "string"
+     },
+     "negotationCode": {
+      "type": "string"
+     },
+     "noteContract": {
+      "type": "string"
+     },
+     "optionals": {
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      }
+     },
+     "origemId": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "phone": {
+      "type": "string"
+     },
+     "phoneHome": {
+      "type": "string"
+     },
+     "phoneMobile1": {
+      "type": "string"
+     },
+     "phoneMobile2": {
+      "type": "string"
+     },
+     "phoneWork": {
+      "type": "string"
+     },
+     "plan": {
+      "type": "integer",
+      "format": "int64"
+     },
+     "plates": {
+      "type": "string"
+     },
+     "plts": {
+      "type": "string"
+     },
+     "protectedValue": {
+      "type": "number",
+      "format": "bigdecimal"
+     },
+     "pwrlnk": {
+      "type": "string"
+     },
+     "quotationCode": {
+      "type": "string"
+     },
+     "registration": {
+      "type": "string"
+     },
+     "renavam": {
+      "type": "string"
+     },
+     "replaceAdesao": {
+      "type": "number",
+      "format": "bigdecimal"
+     },
+     "replaceCoop": {
+      "type": "string"
+     },
+     "replaceEmail": {
+      "type": "string"
+     },
+     "replaceName": {
+      "type": "string"
+     },
+     "replacePhone": {
+      "type": "string"
+     },
+     "rg": {
+      "type": "string"
+     },
+     "rgExpeditor": {
+      "type": "string"
+     },
+     "shift": {
+      "type": "integer",
+      "format": "int32"
+     },
+     "slsmnId": {
+      "type": "string"
+     },
+     "slsmnNwId": {
+      "type": "string"
+     },
+     "workVehicle": {
+      "type": "boolean"
+     }
+    }
+   },
+   "QuotationResult": {
+    "title": "QuotationResult",
+    "type": "object",
+    "properties": {
+     "errorVO": {
+      "$ref": "#/components/schemas/ErrorVO"
+     },
+     "quotationResponse": {
+      "$ref": "#/components/schemas/QuotationResponse"
+     },
+     "sucess": {
+      "type": "boolean"
+     }
+    }
+   },
+   "QuotationUpdateRequest": {
+    "title": "QuotationUpdateRequest",
+    "required": [
+     "code"
+    ],
+    "type": "object",
+    "properties": {
+     "addressAddress": {
+      "description": "Endereço",
+      "type": "string"
+     },
+     "addressComplement": {
+      "description": "Complemento",
+      "type": "string"
+     },
+     "addressNeighborhood": {
+      "description": "Bairro",
+      "type": "string"
+     },
+     "addressNumber": {
+      "description": "Número",
+      "type": "string"
+     },
+     "addressZipcode": {
+      "description": "CEP",
+      "type": "string"
+     },
+     "affiliateId": {
+      "description": "Id do Afiliado",
+      "type": "string"
+     },
+     "birthdate": {
+      "description": "Data de aniversário",
+      "type": "string"
+     },
+     "carModel": {
+      "description": "Id do modelo do carro",
+      "type": "integer",
+      "format": "int64"
+     },
+     "carModelYear": {
+      "description": "definir",
+      "type": "integer",
+      "format": "int64"
+     },
+     "category": {
+      "description": "Categorias",
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      }
+     },
+     "chassi": {
+      "description": "Chassi",
+      "type": "string"
+     },
+     "city": {
+      "description": "Id da cidade",
+      "type": "integer",
+      "format": "int64"
+     },
+     "cnh": {
+      "description": "CNH",
+      "type": "string"
+     },
+     "cnhExpiration": {
+      "description": "Data da expiração da CNH",
+      "type": "string"
+     },
+     "code": {
+      "description": "Código da cotação",
+      "type": "string"
+     },
+     "color": {
+      "description": "Id da cor",
+      "type": "string"
+     },
+     "coop": {
+      "description": "Id da cooperativa",
+      "type": "integer",
+      "format": "int64"
+     },
+     "discount": {
+      "description": "Desconto",
+      "type": "string"
+     },
+     "email": {
+      "description": "E-mail",
+      "type": "string"
+     },
+     "engineNumber": {
+      "description": "Número do motor",
+      "type": "string"
+     },
+     "expirationDay": {
+      "description": "Dia de Vencimento",
+      "type": "integer",
+      "format": "int32",
+      "enum": [
+       1,
+       2,
+       4,
+       5,
+       10,
+       12,
+       13,
+       15,
+       25,
+       30,
+       31
+      ]
+     },
+     "fabricationYear": {
+      "description": "Ano de fabricação",
+      "type": "integer",
+      "format": "int32"
+     },
+     "firstQualification": {
+      "description": "Data 1ª habilitação",
+      "type": "string"
+     },
+     "fuel": {
+      "description": "Tipo de combustível <br> 1 - Flex <br> 2 - Gasolina <br> 3 - Álcool <br> 4 - Diesel <br> 5 - Gás Natural <br> 6 - Tetra-Fuel <br> 7 - Elétrico <br> 8 - Híbrido",
+      "type": "integer",
+      "format": "int32",
+      "enum": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8
+      ]
+     },
+     "fullName": {
+      "description": "Nome completo",
+      "type": "string"
+     },
+     "kmtr": {
+      "description": "Quilometragem",
+      "type": "string"
+     },
+     "leadSource": {
+      "description": "Id da lead",
+      "type": "integer",
+      "format": "int64"
+     },
+     "mdl": {
+      "description": "Id do modelo do veículo",
+      "type": "integer",
+      "format": "int64"
+     },
+     "mdlYr": {
+      "description": "Id do ano modelo",
+      "type": "integer",
+      "format": "int64"
+     },
+     "name": {
+      "description": "Nome",
+      "type": "string"
+     },
+     "noteContract": {
+      "description": "Observações no contrato",
+      "type": "string"
+     },
+     "optionals": {
+      "description": "Opcionais",
+      "type": "array",
+      "items": {
+       "type": "integer",
+       "format": "int64"
+      }
+     },
+     "origemId": {
+      "description": "Id da origem",
+      "type": "integer",
+      "format": "int64"
+     },
+     "phone": {
+      "description": "Telefone",
+      "type": "string"
+     },
+     "phoneHome": {
+      "description": "Telefone de casa",
+      "type": "string"
+     },
+     "phoneMobile1": {
+      "description": "Telefone celular",
+      "type": "string"
+     },
+     "phoneMobile2": {
+      "description": "Telefone celular 2",
+      "type": "string"
+     },
+     "phoneWork": {
+      "description": "Telefone trabalho",
+      "type": "string"
+     },
+     "plates": {
+      "description": "Placa",
+      "type": "string"
+     },
+     "protectedValue": {
+      "description": "Valor protegido",
+      "type": "number",
+      "format": "bigdecimal"
+     },
+     "pwrlnk": {
+      "description": "Powerlink",
+      "type": "string"
+     },
+     "registration": {
+      "description": "Registro",
+      "type": "string"
+     },
+     "renavam": {
+      "description": "Renavan",
+      "type": "string"
+     },
+     "rg": {
+      "description": "Rg",
+      "type": "string"
+     },
+     "rgExpeditor": {
+      "description": "Rg data de expedição",
+      "type": "string"
+     },
+     "shift": {
+      "description": "Câmbio <br> 1 - Manual <br> 2 - Automático <br>",
+      "type": "integer",
+      "format": "int32",
+      "enum": [
+       1,
+       2
+      ]
+     },
+     "slsmnId": {
+      "description": "Código do consultor",
+      "type": "string"
+     },
+     "slsmnNwId": {
+      "description": "Novo Código do consultor",
+      "type": "string"
+     },
+     "tppId": {
+      "description": "tppId do plano escolhido",
+      "type": "integer",
+      "format": "int64"
+     },
+     "workVehicle": {
+      "description": "Veículo de trabalho",
+      "type": "boolean"
+     }
+    }
+   },
+   "ReportDbRequest": {
+    "title": "ReportDbRequest",
+    "type": "object",
+    "properties": {
+     "from": {
+      "description": "Data Inicio <br> formato - yyyy-MM-dd",
+      "example": "2022-01-01",
+      "type": "string"
+     },
+     "stringFilterTypeDate": {
+      "type": "integer",
+      "description": "Tipo do filtro data <br> 1 - Criação <br> 2 - Pagamento <br> 3 - Cadastro SGA",
+      "format": "int64",
+      "enum": [
+       1,
+       2,
+       3
+      ]
+     },
+     "to": {
+      "description": "Data final <br> formato - yyyy-MM-dd",
+      "example": "2022-01-01",
+      "type": "string"
+     }
+    }
+   }
+  },
+  "securitySchemes": {
+   "apiKey": {
+    "type": "http",
+    "scheme": "bearer"
+   }
+  }
+ }
+}
