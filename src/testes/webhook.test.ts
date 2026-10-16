@@ -23,3 +23,9 @@ test("áudio e documento", () => {
   assert.equal(d?.tipo, "documento");
   assert.equal(d?.nomeArquivo, "crlv.pdf");
 });
+
+test("identificação por DDD + 8 dígitos (com e sem o 9º dígito)", async () => {
+  const { chaveTelefone } = await import("../atendimento.js");
+  assert.equal(chaveTelefone("557996534983"), chaveTelefone("5579996534983"));
+  assert.notEqual(chaveTelefone("558296534983"), chaveTelefone("5579996534983"));
+});

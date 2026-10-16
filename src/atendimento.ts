@@ -41,11 +41,16 @@ function despachar(telefone: string) {
   proxima.finally(() => { if (filas.get(telefone) === proxima) filas.delete(telefone); });
 }
 
-const ultimos8 = (t: string) => t.replace(/\D/g, "").slice(-8);
+/** DDD + 8 últimos dígitos: o WhatsApp às vezes entrega o número sem o 9º dígito. */
+export function chaveTelefone(t: string): string {
+  let d = String(t || "").replace(/\D/g, "");
+  if (d.startsWith("55") && d.length >= 12) d = d.slice(2);
+  return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : d;
+}
 
 async function quemE(telefone: string): Promise<Usuario | null> {
-  // compara os 8 últimos dígitos: o WhatsApp às vezes entrega o número sem o 9º dígito
-  return um<Usuario>(`select * from paloma.usuarios where ativo and right(telefone, 8) = $1 limit 1`, [ultimos8(telefone)]);
+  const ativos = await q<Usuario>(`select * from paloma.usuarios where ativo and right(telefone, 8) = right($1, 8)`, [telefone.replace(/\D/g, "")]);
+  return ativos.find((u) => chaveTelefone(u.telefone) === chaveTelefone(telefone)) ?? null;
 }
 
 async function registrar(telefone: string, usuarioId: string | null, papel: "user" | "assistant", texto: string, waId: string | null, arquivoId: string | null = null) {
@@ -101,17 +106,10 @@ async function atender(telefone: string, lote: wa.Recebida[]) {
   const novas = lote.filter((m) => !m.id || !jaVistas.has(m.id));
   if (!novas.length) return;
 
+  // Silêncio total para quem não está cadastrado: o número pode ser comercial e receber
+  // mensagem de clientes. Não responde, não mostra "digitando", não grava a mensagem.
   const u = await quemE(telefone);
-  if (!u) {
-    const jaAvisou = await um(`select 1 from paloma.mensagens where telefone=$1 and papel='assistant' and criado_em > now() - interval '1 day'`, [telefone]);
-    for (const m of novas) await registrar(telefone, null, "user", m.texto || `[${m.tipo}]`, m.id);
-    if (!jaAvisou) {
-      const txt = "Oi! Aqui é a Paloma, assistente da equipe JRPV Brasil. 💚\nEste número atende só a equipe interna. Se você faz parte do time, peça para a gerência liberar seu acesso.";
-      const id = await wa.enviarTexto(telefone, txt);
-      await registrar(telefone, null, "assistant", txt, id);
-    }
-    return;
-  }
+  if (!u) return;
 
   // "digitando…" enquanto ela trabalha (o WhatsApp apaga o indicador depois de alguns segundos)
   await wa.digitando(telefone);
