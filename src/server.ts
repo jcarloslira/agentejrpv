@@ -10,6 +10,7 @@ import { timingSafeEqual } from "node:crypto";
 import { config, faltando } from "./config.js";
 import { q, pool } from "./db.js";
 import { enfileirar, garantirAdmin } from "./atendimento.js";
+import { iniciarRotinas } from "./rotinas.js";
 import * as wa from "./whatsapp/uazapi.js";
 import { sincronizar, gravarCotacoes } from "./sync/powercrm.js";
 import { listarVozes, vozLigada } from "./voz/elevenlabs.js";
@@ -99,23 +100,29 @@ app.post<{ Body: any }>("/admin/usuarios", async (req, rep) => {
 });
 
 // ---------- rotinas ----------
+let sincronizando = false;
 async function cicloPowerCrm() {
+  if (sincronizando) return; // a anterior ainda está rodando
+  sincronizando = true;
   try {
     const n = await sincronizar();
     app.log.info({ registros: n }, "power crm sincronizado");
   } catch (e) {
     app.log.error(e, "sincronização power crm");
+  } finally {
+    sincronizando = false;
   }
 }
 
 async function iniciar() {
+  iniciarRotinas();
   // sobe mesmo com algo faltando, para o /saude mostrar o problema em vez de o deploy falhar calado
   await app.listen({ port: config.porta, host: "0.0.0.0" });
   if (faltando.length) app.log.error(`Variáveis de ambiente faltando: ${faltando.join(", ")}`);
   await garantirAdmin().catch((e) => app.log.error(e, "banco: não consegui conectar (confira DATABASE_URL)"));
   if (!faltando.includes("POWERCRM_TOKEN")) {
     cicloPowerCrm();
-    setInterval(cicloPowerCrm, 15 * 60e3);
+    setInterval(cicloPowerCrm, 5 * 60e3);
   }
 }
 

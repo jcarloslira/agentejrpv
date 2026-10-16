@@ -18,9 +18,12 @@ function agoraTexto() {
 }
 
 /** Histórico recente em texto, alternando user/assistant como a API exige. */
-async function historico(telefone: string): Promise<Anthropic.MessageParam[]> {
+// Busca pela PESSOA (usuario_id), não pelo telefone: o WhatsApp entrega o número às vezes com,
+// às vezes sem o 9º dígito. Mensagens do turno atual (criadas depois de `antes`) ficam de fora.
+async function historico(usuarioId: string, antes: Date): Promise<Anthropic.MessageParam[]> {
   const rows = (await q<{ papel: string; texto: string }>(
-    `select papel, texto from paloma.mensagens where telefone=$1 and criado_em > now() - interval '3 days' order by criado_em desc limit 24`, [telefone])).reverse();
+    `select papel, texto from paloma.mensagens where usuario_id=$1 and criado_em < $2 and criado_em > now() - interval '3 days'
+      order by criado_em desc limit 30`, [usuarioId, antes])).reverse();
   const msgs: Anthropic.MessageParam[] = [];
   for (const r of rows) {
     const role = r.papel === "user" ? "user" : "assistant";
@@ -58,10 +61,12 @@ export async function pensar(e: Entrada): Promise<string> {
     },
   ];
 
-  const anteriores = await historico(u.telefone);
-  // a mensagem atual já foi gravada no histórico como texto; troca a última pela versão com mídia
-  if (anteriores.length && anteriores[anteriores.length - 1].role === "user") anteriores.pop();
-  const mensagens: Anthropic.MessageParam[] = [...anteriores, { role: "user", content: e.conteudo }];
+  const anteriores = await historico(u.id, e.inicioTurno);
+  const ult = anteriores[anteriores.length - 1];
+  // se o turno anterior ficou sem resposta, junta com o atual (a API pede alternância)
+  const mensagens: Anthropic.MessageParam[] = ult?.role === "user"
+    ? [...anteriores.slice(0, -1), { role: "user", content: [{ type: "text", text: String(ult.content) }, ...e.conteudo] }]
+    : [...anteriores, { role: "user", content: e.conteudo }];
 
   for (let passo = 0; passo < MAX_PASSOS; passo++) {
     const r = await client.beta.messages.create({

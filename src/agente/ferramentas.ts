@@ -62,6 +62,13 @@ async function garantirCotacaoDoConsultor(u: Usuario, codigo: string) {
     throw new SemPermissao("Essa cotação é de outro consultor.");
 }
 
+async function frescorPowerCrm(): Promise<string> {
+  const c = await um<{ valor: any }>(`select valor from paloma.config where chave='pcrm_sync'`);
+  if (!c?.valor?.em) return "espelho do Power CRM (sincronização ainda não concluída)";
+  const quando = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Maceio", dateStyle: "short", timeStyle: "short" }).format(new Date(c.valor.em));
+  return `espelho do Power CRM, atualizado em ${quando} (sincroniza a cada 5 min)`;
+}
+
 // ---------- ações pendentes ----------
 
 async function prepararAcao(ctx: Contexto, sistema: "sga" | "powercrm", metodo: string, rota: string, corpo: unknown, resumo: string) {
@@ -186,7 +193,48 @@ const F: Ferramenta[] = [
           order by criado_no_crm desc nulls last limit 15`,
         filtroConsultor ? [p.length === 7 ? p : d.length >= 8 ? d : t, ctx.usuario.powercrm_email || "-"] : [p.length === 7 ? p : d.length >= 8 ? d : t]);
       const comEtapa = rows.map((r: any) => ({ ...r, etapa: STATUS_CARD[r.card_status] || r.card_status }));
-      return json({ fonte: "espelho do Power CRM", cotacoes: comEtapa });
+      return json({ fonte: await frescorPowerCrm(), cotacoes: comEtapa });
+    },
+  },
+  {
+    nome: "cotacoes_painel",
+    descricao: "Números do funil do Power CRM num período: cotações criadas, aceitas, pagas, vistorias finalizadas, VENDAS (enviadas ao SGA) e arquivadas. Pode agrupar por consultor ou cooperativa e listar as cotações de uma etapa (ex.: aguardando vistoria). É a ferramenta certa para 'quantas vendas/cotações hoje/na semana'. Consultor vê só as dele.",
+    papel: "consultor",
+    esquema: {
+      type: "object",
+      properties: {
+        de: { type: "string", description: "aaaa-mm-dd (padrão: hoje)" },
+        ate: { type: "string", description: "aaaa-mm-dd (padrão: igual a 'de')" },
+        agrupar_por: { type: "string", enum: ["nenhum", "consultor", "cooperativa"] },
+        listar_etapa: { type: "string", enum: ["nenhuma", "recebida", "negociacao", "vistoria", "liberada_cadastro", "concluida", "vendas_do_periodo", "criadas_no_periodo"], description: "lista até 20 cotações dessa etapa (as etapas são a situação atual; vendas/criadas respeitam o período)" },
+        consultor: { type: "string", description: "nome ou e-mail do consultor (cadastro/gerência)" },
+      },
+    },
+    async executar(ctx, e) {
+      const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Maceio" }).format(new Date());
+      const de = /^\d{4}-\d{2}-\d{2}$/.test(e.de || "") ? e.de : hoje;
+      const ate = /^\d{4}-\d{2}-\d{2}$/.test(e.ate || "") ? e.ate : de;
+      const params: unknown[] = [de, ate];
+      let filtro = "";
+      if (!pode(ctx.usuario, "cadastro")) { params.push(ctx.usuario.powercrm_email || "-"); filtro = `and lower(consultor_email)=lower($${params.length})`; }
+      else if (e.consultor) { params.push(`%${e.consultor}%`); filtro = `and (consultor_nome ilike $${params.length} or consultor_email ilike $${params.length})`; }
+      const no = (col: string) => `count(*) filter (where (${col} at time zone 'America/Maceio')::date between $1::date and $2::date)`;
+      const grupo = e.agrupar_por === "consultor" ? "consultor_nome" : e.agrupar_por === "cooperativa" ? "cooperativa" : null;
+      const totais = await q(
+        `select ${grupo ? `${grupo} as grupo,` : ""} ${no("criada_em")}::int criadas, ${no("aceita_em")}::int aceitas, ${no("pagamento_em")}::int pagas,
+                ${no("vistoria_finalizada_em")}::int vistorias_finalizadas, ${no("enviada_sga_em")}::int vendas_enviadas_sga, ${no("arquivada_em")}::int arquivadas
+           from paloma.pcrm_funil where true ${filtro} ${grupo ? `group by 1 having ${no("criada_em")} + ${no("enviada_sga_em")} > 0 order by vendas_enviadas_sga desc, criadas desc limit 40` : ""}`, params);
+      let lista: unknown = undefined;
+      const etapas: Record<string, string> = { recebida: "1", negociacao: "2", vistoria: "3", liberada_cadastro: "4", concluida: "5" };
+      if (e.listar_etapa && e.listar_etapa !== "nenhuma") {
+        const cond = e.listar_etapa === "vendas_do_periodo" ? `(enviada_sga_em at time zone 'America/Maceio')::date between $1::date and $2::date`
+          : e.listar_etapa === "criadas_no_periodo" ? `(criada_em at time zone 'America/Maceio')::date between $1::date and $2::date`
+          : `card_status='${etapas[e.listar_etapa]}' and not coalesce(arquivada,false) and (criada_em at time zone 'America/Maceio')::date between $1::date - 60 and $2::date`;
+        lista = await q(`select quotation_code, cliente_nome, placa, modelo, consultor_nome, cooperativa, status_vistoria, plano, mensalidade,
+                                to_char(criada_em at time zone 'America/Maceio','DD/MM HH24:MI') criada, to_char(enviada_sga_em at time zone 'America/Maceio','DD/MM HH24:MI') enviada_sga
+                           from paloma.pcrm_funil where ${cond} ${filtro} order by coalesce(enviada_sga_em, criada_em) desc limit 20`, params);
+      }
+      return json({ periodo: { de, ate }, fonte: await frescorPowerCrm(), definicoes: "venda = cotação enviada ao SGA no período; datas no horário de Sergipe", totais: grupo ? totais : totais[0], lista });
     },
   },
   {
@@ -413,14 +461,14 @@ const F: Ferramenta[] = [
     async executar(ctx, e) {
       const base = rotasPowerCrm.find((r) => r.metodo === e.metodo && new RegExp("^" + r.rota.replace(/\{[^}]+\}/g, "[^/]+") + "$").test(e.rota));
       if (!base) return `A rota ${e.metodo} ${e.rota} não está no catálogo da Power API. Use api_catalogo.`;
-      if (base.rota === "/api/report/db" && !pode(ctx.usuario, "gerencia")) throw new SemPermissao("O relatório da base é com a gerência.");
+      if (base.rota === "/api/report/db") return "Não use o relatório bruto (vem grande demais e corta). Os mesmos dados estão no espelho: use cotacoes_painel, cotacao_buscar ou consulta_base (paloma.pcrm_funil).";
       if (base.grava) return prepararAcao(ctx, "powercrm", e.metodo, e.rota, { query: e.query, corpo: e.corpo }, e.resumo || `${base.descricao}: ${JSON.stringify({ query: e.query, corpo: e.corpo }).slice(0, 300)}`);
       return json(await powercrm(e.metodo, e.rota, { query: e.query, corpo: e.corpo }));
     },
   },
   {
     nome: "consulta_base",
-    descricao: `Consulta SQL somente leitura na base espelhada (para números, rankings, inadimplência, produção por consultor/regional). Tabelas: public.jrpv_veiculos (placa, codigo_associado, nome_associado, cpf_associado, descricao_situacao, marca, modelo, valor_fipe, codigo_regional, codigo_cooperativa, codigo_voluntario, data_contrato, data_cadastro), public.jrpv_associados (codigo_associado, nome, cpf, descricao_situacao, codigo_regional, data_contrato), public.jrpv_boletos (nosso_numero, codigo_associado, descricao_situacao_boleto, mes_referente, data_vencimento, valor_boleto, data_pagamento, valor_pagamento, codigo_regional), public.jrpv_eventos (codigo_evento, protocolo, codigo_veiculo, codigo_associado, valor_reparo, participacao, motivo, situacao_evento, data_evento, cidade, codigo_regional), public.jrpv_voluntarios (codigo_voluntario, nome, cpf, cidade, situacao), public.jrpv_regionais, public.jrpv_cooperativas, public.jrpv_kpis (dados jsonb), public.jrpv_kpis_regional, paloma.pcrm_cotacoes (quotation_code, cliente_nome, placa, consultor_nome, consultor_email, cooperativa, card_status 1..5, arquivada, criado_no_crm, dados jsonb do relatório do Power). Máximo 200 linhas.`,
+    descricao: `Consulta SQL somente leitura na base espelhada (para números, rankings, inadimplência, produção por consultor/regional). Tabelas: public.jrpv_veiculos (placa, codigo_associado, nome_associado, cpf_associado, descricao_situacao, marca, modelo, valor_fipe, codigo_regional, codigo_cooperativa, codigo_voluntario, data_contrato, data_cadastro), public.jrpv_associados (codigo_associado, nome, cpf, descricao_situacao, codigo_regional, data_contrato), public.jrpv_boletos (nosso_numero, codigo_associado, descricao_situacao_boleto, mes_referente, data_vencimento, valor_boleto, data_pagamento, valor_pagamento, codigo_regional), public.jrpv_eventos (codigo_evento, protocolo, codigo_veiculo, codigo_associado, valor_reparo, participacao, motivo, situacao_evento, data_evento, cidade, codigo_regional), public.jrpv_voluntarios (codigo_voluntario, nome, cpf, cidade, situacao), public.jrpv_regionais, public.jrpv_cooperativas, public.jrpv_kpis (dados jsonb), public.jrpv_kpis_regional, paloma.pcrm_funil (quotation_code, cliente_nome, placa, consultor_nome, consultor_email, cooperativa, card_status 1=recebida 2=negociação 3=vistoria 4=liberada p/ cadastro 5=concluída, arquivada, criada_em, aceita_em, pagamento_em, vistoria_finalizada_em, status_vistoria, enviada_sga_em (= venda), arquivada_em, plano, mensalidade, adesao, modelo, fipe, origem), paloma.pcrm_cotacoes (dados jsonb completo do relatório do Power). Datas são timestamptz: para o dia local use (coluna at time zone 'America/Maceio')::date. Máximo 200 linhas.`,
     papel: "gerencia",
     esquema: { type: "object", properties: { sql: { type: "string" } }, required: ["sql"] },
     async executar(_ctx, e) {
@@ -584,13 +632,17 @@ const F: Ferramenta[] = [
     },
   },
   {
-    nome: "voz_preferencia",
-    descricao: "Liga ou desliga as respostas em áudio para quem está falando. 'auto' = responde em áudio quando a pessoa manda áudio.",
+    nome: "preferencias",
+    descricao: "Ajusta preferências de quem está falando: voz ('auto' = responde em áudio quando recebe áudio, 'sempre', 'nunca') e resumo_diario (resumo da operação às 8h, de segunda a sábado).",
     papel: "consultor",
-    esquema: { type: "object", properties: { modo: { type: "string", enum: ["auto", "sempre", "nunca"] } }, required: ["modo"] },
+    esquema: { type: "object", properties: { voz: { type: "string", enum: ["auto", "sempre", "nunca"] }, resumo_diario: { type: "boolean" } } },
     async executar(ctx, e) {
-      await q(`update paloma.usuarios set preferencias = preferencias || jsonb_build_object('voz', $2::text) where id=$1`, [ctx.usuario.id, e.modo]);
-      return `Preferência de voz: ${e.modo}.`;
+      const mudar: Record<string, unknown> = {};
+      if (e.voz) mudar.voz = e.voz;
+      if (typeof e.resumo_diario === "boolean") mudar.resumo_diario = e.resumo_diario;
+      if (!Object.keys(mudar).length) return json(ctx.usuario.preferencias);
+      await q(`update paloma.usuarios set preferencias = preferencias || $2::jsonb where id=$1`, [ctx.usuario.id, JSON.stringify(mudar)]);
+      return `Preferências atualizadas: ${JSON.stringify(mudar)}.`;
     },
   },
 ];
