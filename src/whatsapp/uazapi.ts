@@ -58,7 +58,9 @@ export async function conectar(urlWebhook: string, nome = "Paloma · JRPV"): Pro
 
 export async function status() {
   const st = await uaz("/instance/status");
-  return { conectado: !!st.status?.connected, numero: st.status?.jid?.user || null, perfil: st.instance?.profileName || null };
+  const jid = st.status?.jid;
+  const numero = (typeof jid === "string" ? jid.split(/[:@]/)[0] : jid?.user) || st.instance?.owner || null;
+  return { conectado: !!st.status?.connected, numero, perfil: st.instance?.profileName || null };
 }
 
 export async function digitando(numero: string, tipo: "composing" | "recording" = "composing") {

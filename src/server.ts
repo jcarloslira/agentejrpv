@@ -27,7 +27,7 @@ app.get("/saude", async () => {
   const banco = await q(`select current_user usuario, (select count(*) from paloma.usuarios)::int usuarios`)
     .then((r) => ({ ok: true, ...r[0] })).catch((e) => ({ ok: false, erro: (e as Error).message }));
   const whatsapp = await wa.status().catch((e) => ({ erro: (e as Error).message }));
-  return { ok: banco.ok && !faltando.length, variaveis_faltando: faltando, banco, whatsapp, voz: vozLigada() };
+  return { ok: banco.ok && !faltando.length, variaveis_faltando: faltando, banco, whatsapp, voz: await vozLigada() };
 });
 
 app.post<{ Params: { segredo: string } }>("/webhook/whatsapp/:segredo", async (req, rep) => {

@@ -93,7 +93,7 @@ async function atender(m: wa.Recebida) {
   }
 
   const modoVoz = String(u.preferencias?.voz || "auto");
-  const emAudio = vozLigada() && (modoVoz === "sempre" || (modoVoz === "auto" && veioAudio)) && resposta.length < 1800;
+  const emAudio = (await vozLigada()) && (modoVoz === "sempre" || (modoVoz === "auto" && veioAudio)) && resposta.length < 1800;
   let waId: string | null = null;
   if (emAudio) {
     try {

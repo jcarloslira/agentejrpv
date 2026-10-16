@@ -3,10 +3,20 @@
  */
 import { config } from "../config.js";
 import { paraFala } from "./fonetica.js";
+import { um } from "../db.js";
 
 const BASE = "https://api.elevenlabs.io/v1";
 
-export const vozLigada = () => !!config.elevenKey && !!config.elevenVoz;
+// voz: ELEVENLABS_VOICE_ID no ambiente ou paloma.config 'elevenlabs_voz' (troca sem redeploy)
+let vozCache: { id: string; em: number } | null = null;
+export async function vozAtual(): Promise<string> {
+  if (config.elevenVoz) return config.elevenVoz;
+  if (vozCache && Date.now() - vozCache.em < 5 * 60e3) return vozCache.id;
+  const c = await um<{ valor: any }>(`select valor from paloma.config where chave='elevenlabs_voz'`).catch(() => null);
+  vozCache = { id: String(c?.valor?.id || ""), em: Date.now() };
+  return vozCache.id;
+}
+export const vozLigada = async () => !!config.elevenKey && !!(await vozAtual());
 
 /**
  * Ajuste fino da voz: estabilidade média deixa a fala natural sem "inventar" entonação;
@@ -17,10 +27,10 @@ const AJUSTES = { stability: 0.5, similarity_boost: 0.8, style: 0.15, use_speake
 
 export async function falar(texto: string): Promise<string> {
   const fala = paraFala(texto).slice(0, 2500);
-  const r = await fetch(`${BASE}/text-to-speech/${config.elevenVoz}?output_format=mp3_44100_128`, {
+  const r = await fetch(`${BASE}/text-to-speech/${await vozAtual()}?output_format=mp3_44100_128`, {
     method: "POST",
     headers: { "xi-api-key": config.elevenKey, "Content-Type": "application/json", Accept: "audio/mpeg" },
-    body: JSON.stringify({ text: fala, model_id: config.elevenModelo, language_code: "pt", voice_settings: AJUSTES }),
+    body: JSON.stringify({ text: fala, model_id: config.elevenModelo, voice_settings: AJUSTES }),
   });
   if (!r.ok) throw new Error(`ElevenLabs (voz) respondeu ${r.status}: ${(await r.text()).slice(0, 300)}`);
   return Buffer.from(await r.arrayBuffer()).toString("base64");
