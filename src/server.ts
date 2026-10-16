@@ -3,7 +3,7 @@
  *   POST /webhook/whatsapp/:segredo   mensagens da uazapi
  *   POST /webhook/powercrm/:segredo   webhooks v2 do Power CRM
  *   GET  /saude                       status
- *   /admin/*                          administração (header x-admin-token)
+ *   /admin/*                          administração (header x-admin-token ou ?token= no navegador)
  */
 import Fastify from "fastify";
 import { timingSafeEqual } from "node:crypto";
@@ -57,7 +57,7 @@ app.post<{ Params: { segredo: string } }>("/webhook/powercrm/:segredo", async (r
 // ---------- administração ----------
 app.addHook("onRequest", async (req, rep) => {
   if (!req.url.startsWith("/admin")) return;
-  const t = String(req.headers["x-admin-token"] || "");
+  const t = String(req.headers["x-admin-token"] || (req.query as any)?.token || "");
   if (!t || !igual(t, config.adminToken)) return rep.code(401).send({ erro: "não autorizado" });
 });
 
