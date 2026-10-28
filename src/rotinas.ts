@@ -5,8 +5,8 @@
  */
 import { q } from "./db.js";
 import { config } from "./config.js";
-import { pensar } from "./agente/cerebro.js";
-import { mandarPorConta } from "./atendimento.js";
+import { pensar, semCredito } from "./agente/cerebro.js";
+import { mandarPorConta, avisarAdminSemCredito } from "./atendimento.js";
 import type { Usuario } from "./agente/permissoes.js";
 
 function agoraLocal() {
@@ -38,6 +38,7 @@ async function resumoDaManha() {
       await mandarPorConta(u, texto);
     } catch (e) {
       console.error("resumo da manhã", u.nome, e);
+      if (semCredito(e)) await avisarAdminSemCredito().catch(() => {});
     }
   }
 }

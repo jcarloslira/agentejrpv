@@ -73,11 +73,28 @@ async function frescorPowerCrm(): Promise<string> {
 
 async function prepararAcao(ctx: Contexto, sistema: "sga" | "powercrm", metodo: string, rota: string, corpo: unknown, resumo: string) {
   await q(`update paloma.acoes set status='expirada' where usuario_id=$1 and status='pendente' and criado_em < now() - interval '30 minutes'`, [ctx.usuario.id]);
+  // refazer a mesma ação substitui a anterior (evita várias "criar cotação" iguais esperando o sim)
+  await q(`update paloma.acoes set status='cancelada' where usuario_id=$1 and status='pendente' and sistema=$2 and rota=$3`, [ctx.usuario.id, sistema, rota]);
   const [a] = await q<{ id: string }>(
     `insert into paloma.acoes (usuario_id, sistema, metodo, rota, corpo, resumo) values ($1,$2,$3,$4,$5,$6) returning id`,
     [ctx.usuario.id, sistema, metodo, rota, corpo === undefined ? null : JSON.stringify(corpo), resumo],
   );
-  return `AÇÃO PENDENTE (id ${a.id}). Nada foi gravado ainda. Mostre para a pessoa, em poucas linhas, o que vai ser feito:\n${resumo}\nE pergunte se pode fazer. Só chame confirmar_acao depois que ela confirmar numa nova mensagem.`;
+  return `AÇÃO PENDENTE preparada (uso interno: ${a.id}; NUNCA mostre esse código para a pessoa). Nada foi gravado ainda. Mostre em poucas linhas o que vai ser feito:\n${resumo}\nE pergunte se pode. Quando ela disser "pode"/"sim" numa próxima mensagem, chame confirmar_acao (sem id = a última pendente).`;
+}
+
+/** Ação pendente da pessoa: pelo id (inteiro ou só o começo) ou, sem id, a mais recente. */
+async function acaoPendente(usuarioId: string, id?: string) {
+  const ref = String(id || "").trim().toLowerCase();
+  return um(
+    `select * from paloma.acoes where usuario_id=$1 and status='pendente' and ($2 = '' or id::text like $2 || '%')
+      order by criado_em desc limit 1`, [usuarioId, ref.replace(/[^0-9a-f-]/g, "")]);
+}
+
+/** Ações pendentes, para a Paloma sempre saber o que está aguardando "pode". */
+export async function acoesPendentes(usuarioId: string): Promise<string> {
+  const r = await q<{ resumo: string; criado_em: string }>(
+    `select resumo, criado_em from paloma.acoes where usuario_id=$1 and status='pendente' and criado_em > now() - interval '30 minutes' order by criado_em`, [usuarioId]);
+  return r.length ? `Ações preparadas aguardando o "pode" desta pessoa (confirmar_acao sem id executa a última):\n${r.map((x) => `- ${x.resumo}`).join("\n")}` : "";
 }
 
 async function executarAcao(acao: any): Promise<unknown> {
@@ -260,8 +277,10 @@ const F: Ferramenta[] = [
     esquema: {
       type: "object",
       properties: {
-        nome: { type: "string" }, telefone: { type: "string" }, email: { type: "string" }, placa: { type: "string" }, cpf: { type: "string" },
+        nome: { type: "string" }, telefone: { type: "string" }, email: { type: "string" }, placa: { type: "string" }, cpf: { type: "string" }, chassi: { type: "string" },
         veiculo_trabalho: { type: "boolean" }, email_consultor: { type: "string", description: "só cadastro/gerência: cria em nome de outro consultor" },
+        modelo_id: { type: "integer", description: "id do modelo (tabelas_powercrm: modelos)" }, ano_modelo_id: { type: "integer", description: "id do ano-modelo (tabelas_powercrm: anos)" },
+        cidade_id: { type: "integer", description: "id da cidade de circulação (tabelas_powercrm: cidades). Sem cidade o Power não mostra planos." },
       },
       required: ["nome", "telefone"],
     },
@@ -270,16 +289,51 @@ const F: Ferramenta[] = [
       let pwrlnk: string | undefined;
       if (emailConsultor) {
         const pl = await powercrm("POST", "/api/consultant/powerlink", { corpo: { email: emailConsultor } }).catch(() => null);
-        pwrlnk = pl?.powerLink || pl?.powerlink || pl?.pwrlnk || pl?.link || undefined;
+        // a Power API devolve { powerlinkId, name, email, ... }
+        pwrlnk = pl?.powerlinkId || undefined;
+        if (!pwrlnk) return `Não achei o consultor ${emailConsultor} no Power CRM (sem powerlinkId). Confirme o e-mail do consultor antes de criar; sem ele a cotação fica sem dono.`;
       }
-      const corpo = { name: e.nome, phone: digitos(e.telefone), email: e.email, plts: e.placa ? placaLimpa(e.placa) : undefined, registration: e.cpf ? digitos(e.cpf) : undefined, workVehicle: !!e.veiculo_trabalho, pwrlnk };
+      const corpo = {
+        name: e.nome, phone: digitos(e.telefone), email: e.email, plts: e.placa ? placaLimpa(e.placa) : undefined, chassi: e.chassi,
+        registration: e.cpf ? digitos(e.cpf) : undefined, workVehicle: !!e.veiculo_trabalho, pwrlnk, mdl: e.modelo_id, mdlYr: e.ano_modelo_id, city: e.cidade_id,
+      };
       return prepararAcao(ctx, "powercrm", "POST", "/api/quotation/add", { corpo },
-        `Criar cotação no Power CRM: ${e.nome}, tel ${e.telefone}${e.placa ? `, placa ${placaLimpa(e.placa)}` : ""}${emailConsultor ? `, consultor ${emailConsultor}` : ""}${pwrlnk ? "" : " (sem PowerLink: o Power vai atribuir pelo padrão)"}.`);
+        `Criar cotação no Power CRM: ${e.nome}, tel ${e.telefone}${e.placa ? `, placa ${placaLimpa(e.placa)}` : ", sem placa"}${e.modelo_id ? ", com o veículo escolhido" : ""}${e.cidade_id ? ", com a cidade de circulação" : ""}${emailConsultor ? `, no nome do consultor ${emailConsultor}` : ", sem consultor definido"}.`);
+    },
+  },
+  {
+    nome: "tabelas_powercrm",
+    descricao: "Tabelas do Power CRM para montar cotação: marcas (por tipo: 1 carro, 2 moto, 3 caminhão), anos de uma marca, modelos de marca+ano, estados e cidades. Os ids voltam prontos para cotacao_criar/cotacao_atualizar. Use 'filtro' para achar pelo nome (ex.: 'titan', 'itabaiana').",
+    papel: "consultor",
+    esquema: {
+      type: "object",
+      properties: {
+        tabela: { type: "string", enum: ["marcas", "anos", "modelos", "estados", "cidades"] },
+        tipo_veiculo: { type: "integer", description: "marcas: 1 carro, 2 moto, 3 caminhão" },
+        marca_id: { type: "integer" }, ano_id: { type: "integer" }, estado_id: { type: "integer" },
+        filtro: { type: "string" },
+      },
+      required: ["tabela"],
+    },
+    async executar(_ctx, e) {
+      const rota: Record<string, [string, Record<string, unknown>]> = {
+        marcas: ["/api/quotation/cb", { type: e.tipo_veiculo ?? 1 }],
+        anos: ["/api/quotation/bmy", { cb: e.marca_id }],
+        modelos: ["/api/quotation/cmby", { cb: e.marca_id, cy: e.ano_id }],
+        estados: ["/api/quotation/stt", {}],
+        cidades: ["/api/quotation/ct", { st: e.estado_id }],
+      };
+      const [caminho, query] = rota[e.tabela];
+      const lista = await powercrm("GET", caminho, { query: query as any });
+      const itens = (Array.isArray(lista) ? lista : []).map((x: any) => ({ id: x.id, nome: x.text, extra: x.back ?? x.value ?? undefined }));
+      const f = String(e.filtro || "").toLowerCase();
+      const filtrados = f ? itens.filter((x) => String(x.nome).toLowerCase().includes(f)) : itens;
+      return json({ total: filtrados.length, itens: filtrados.slice(0, 60) });
     },
   },
   {
     nome: "cotacao_atualizar",
-    descricao: "Prepara alteração de dados de uma cotação no Power CRM (dados pessoais, endereço, veículo, plano tppId, dia de vencimento, observações do contrato). Campos no formato da API: name, fullName, email, phoneMobile1, registration (CPF), rg, birthdate, cnh, addressZipcode, addressAddress, addressNumber, addressNeighborhood, plates, chassi, renavam, color, kmtr, tppId, expirationDay, noteContract, protectedValue. Gera ação pendente.",
+    descricao: "Prepara alteração de dados de uma cotação no Power CRM (dados pessoais, endereço, veículo, plano tppId, dia de vencimento, observações do contrato). Campos no formato da API: mdl (id do modelo) e mdlYr (id do ano-modelo) e city (id da cidade de circulação) vindos de tabelas_powercrm; pwrlnk (powerlinkId do consultor, para dar dono a uma cotação sem consultor); name, fullName, email, phoneMobile1, registration (CPF), rg, birthdate, cnh, addressZipcode, addressAddress, addressNumber, addressNeighborhood, plates, chassi, renavam, color, kmtr, tppId, expirationDay, noteContract, protectedValue. Gera ação pendente.",
     papel: "consultor",
     esquema: { type: "object", properties: { codigo: { type: "string" }, campos: { type: "object", additionalProperties: true } }, required: ["codigo", "campos"] },
     async executar(ctx, e) {
@@ -503,12 +557,12 @@ const F: Ferramenta[] = [
   // ===== confirmação =====
   {
     nome: "confirmar_acao",
-    descricao: "Executa uma ação pendente DEPOIS que a pessoa confirmou numa mensagem nova. Nunca chame no mesmo turno em que a ação foi preparada.",
+    descricao: "Executa uma ação pendente DEPOIS que a pessoa confirmou numa mensagem nova. Sem id, executa a última ação pendente dela (é o normal). Nunca chame no mesmo turno em que a ação foi preparada.",
     papel: "consultor",
-    esquema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    esquema: { type: "object", properties: { id: { type: "string", description: "opcional; pode ser só o começo do código" } } },
     async executar(ctx, e) {
-      const a = await um(`select * from paloma.acoes where id=$1 and usuario_id=$2`, [e.id, ctx.usuario.id]);
-      if (!a) return "Não achei essa ação.";
+      const a = await acaoPendente(ctx.usuario.id, e.id);
+      if (!a) return "Não há ação pendente para confirmar. Prepare a ação de novo.";
       if (a.status !== "pendente") return `Essa ação está como "${a.status}", não dá para executar.`;
       if (new Date(a.criado_em) >= ctx.inicioTurno) return "Essa ação acabou de ser preparada. Mostre o resumo e espere a pessoa confirmar.";
       if (Date.now() - new Date(a.criado_em).getTime() > 30 * 60e3) {
@@ -527,12 +581,14 @@ const F: Ferramenta[] = [
   },
   {
     nome: "cancelar_acao",
-    descricao: "Cancela uma ação pendente (a pessoa desistiu ou quer mudar algo).",
+    descricao: "Cancela uma ação pendente (a pessoa desistiu ou quer mudar algo). Sem id, cancela a última pendente.",
     papel: "consultor",
-    esquema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
+    esquema: { type: "object", properties: { id: { type: "string" } } },
     async executar(ctx, e) {
-      const r = await q(`update paloma.acoes set status='cancelada' where id=$1 and usuario_id=$2 and status='pendente' returning id`, [e.id, ctx.usuario.id]);
-      return r.length ? "Cancelada." : "Não havia ação pendente com esse id.";
+      const a = await acaoPendente(ctx.usuario.id, e.id);
+      if (!a) return "Não havia ação pendente.";
+      await q(`update paloma.acoes set status='cancelada' where id=$1`, [a.id]);
+      return "Cancelada.";
     },
   },
 

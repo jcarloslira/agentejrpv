@@ -25,7 +25,9 @@ const igual = (a: string, b: string) => {
 
 // sempre 200 (o Render só precisa saber que o processo está de pé); o corpo diz o que falta
 app.get("/saude", async () => {
-  const banco = await q(`select current_user usuario, (select count(*) from paloma.usuarios)::int usuarios`)
+  const banco = await q(`select current_user usuario, (select count(*) from paloma.usuarios)::int usuarios,
+      exists(select 1 from public.jrpv_veiculos) espelho_sga_visivel,
+      (select valor->>'em' from paloma.config where chave='pcrm_sync') power_sincronizado_em`)
     .then((r) => ({ ok: true, ...r[0] })).catch((e) => ({ ok: false, erro: (e as Error).message }));
   const whatsapp = await wa.status().catch((e) => ({ erro: (e as Error).message }));
   return { ok: banco.ok && !faltando.length, variaveis_faltando: faltando, banco, whatsapp, voz: await vozLigada() };

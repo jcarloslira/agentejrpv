@@ -6,7 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config.js";
 import { q } from "../db.js";
 import { PERSONA } from "./persona.js";
-import { ferramentasPara, executar } from "./ferramentas.js";
+import { ferramentasPara, executar, acoesPendentes } from "./ferramentas.js";
 import { DESCRICAO_PAPEL, type Usuario } from "./permissoes.js";
 import * as memoria from "./memoria.js";
 
@@ -43,10 +43,13 @@ export type Entrada = {
   inicioTurno: Date;
 };
 
+/** A conta do Claude ficou sem crédito: não adianta tentar de novo até alguém recarregar. */
+export const semCredito = (e: unknown) => e instanceof Anthropic.APIError && /credit balance/i.test(String(e.message));
+
 export async function pensar(e: Entrada): Promise<string> {
   const u = e.usuario;
   const ferramentas = ferramentasPara(u);
-  const lembrancas = await memoria.contexto(u);
+  const [lembrancas, pendentes] = await Promise.all([memoria.contexto(u), acoesPendentes(u.id)]);
   const sistema: Anthropic.TextBlockParam[] = [
     { type: "text", text: PERSONA, cache_control: { type: "ephemeral" } },
     {
@@ -57,6 +60,7 @@ export async function pensar(e: Entrada): Promise<string> {
         u.codigo_voluntario ? `Código de voluntário no SGA: ${u.codigo_voluntario}.` : "",
         u.powercrm_email ? `E-mail no Power CRM: ${u.powercrm_email}.` : "",
         lembrancas,
+        pendentes,
       ].filter(Boolean).join("\n"),
     },
   ];

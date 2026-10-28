@@ -9,14 +9,14 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { q, um } from "./db.js";
 import { config } from "./config.js";
-import { pensar, descreverArquivo } from "./agente/cerebro.js";
+import { pensar, descreverArquivo, semCredito } from "./agente/cerebro.js";
 import type { Usuario } from "./agente/permissoes.js";
 import * as wa from "./whatsapp/uazapi.js";
 import { falar, transcrever, vozLigada } from "./voz/elevenlabs.js";
 
-const ESPERA_TEXTO_MS = 3500;   // silêncio que fecha a rajada
+const ESPERA_TEXTO_MS = 6000;   // silêncio que fecha a rajada ("tudo certo" + "preciso de uma cotação")
 const ESPERA_MIDIA_MS = 6000;   // depois de arquivo/áudio costuma vir legenda ou outro arquivo
-const AVISO_DEMORA_MS = 25000;  // se o raciocínio passar disso, avisa que está trabalhando
+const AVISO_DEMORA_MS = 35000;  // se o raciocínio passar disso, avisa que está trabalhando
 
 type Pendente = { msgs: wa.Recebida[]; timer: NodeJS.Timeout | null };
 const pendentes = new Map<string, Pendente>();
@@ -141,10 +141,18 @@ async function atender(telefone: string, lote: wa.Recebida[]) {
       resposta = await pensar({ usuario: u, conteudo: blocos, inicioTurno });
     } catch (e) {
       console.error("pensar", e);
-      resposta = "Vixe, deu um problema aqui do meu lado e não consegui terminar. Tenta de novo daqui a pouquinho? Se continuar, avisa a gerência.";
+      if (semCredito(e)) {
+        resposta = "Vixe, tô sem fôlego agora: os créditos da minha inteligência acabaram. Já avisei o administrador pra recarregar. Assim que voltar, te respondo 🙏";
+        avisarAdminSemCredito().catch(() => {});
+      } else {
+        resposta = "Vixe, deu um problema aqui do meu lado e não consegui terminar. Tenta de novo daqui a pouquinho? Se continuar, avisa a gerência.";
+      }
     }
     clearTimeout(avisoDemora);
     clearInterval(presenca);
+    // chegou mensagem nova enquanto ela pensava: essa resposta ficou velha. Não envia;
+    // a próxima rodada lê tudo (estas mensagens já estão no histórico sem resposta).
+    if (pendentes.has(telefone)) return;
     await responder(u, telefone, resposta, veioAudio);
   } finally {
     clearTimeout(avisoDemora);
@@ -170,6 +178,18 @@ async function responder(u: Usuario, telefone: string, resposta: string, veioAud
     waId = await wa.enviarTexto(telefone, resposta);
   }
   await registrar(telefone, u.id, "assistant", resposta, waId);
+}
+
+/** Avisa os admins (no máximo 1 vez a cada 3h) que a conta do Claude ficou sem crédito. */
+export async function avisarAdminSemCredito() {
+  const ok = await q(`insert into paloma.config (chave, valor) values ('alerta_credito', '{}'::jsonb)
+                       on conflict (chave) do update set valor = '{}'::jsonb, atualizado_em = now()
+                       where paloma.config.atualizado_em < now() - interval '3 hours' returning chave`);
+  if (!ok.length) return;
+  const admins = await q<Usuario>(`select * from paloma.usuarios where ativo and papel='admin'`);
+  for (const a of admins) {
+    await mandarPorConta(a, "⚠️ Os créditos da API do Claude acabaram e eu parei de responder a equipe. Recarregue em console.anthropic.com → Billing (vale ligar a recarga automática).").catch(() => {});
+  }
 }
 
 /** Mensagem que a Paloma manda por iniciativa própria (resumo do dia, alerta). */

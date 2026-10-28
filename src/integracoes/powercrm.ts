@@ -15,7 +15,7 @@ export class ErroPowerCrm extends Error {
 
 type Opcoes = { query?: Record<string, string | number | undefined>; corpo?: unknown; binario?: { dados: Buffer; mime: string } };
 
-export async function powercrm(metodo: "GET" | "POST" | "PUT", rota: string, op: Opcoes = {}): Promise<any> {
+export async function powercrm(metodo: "GET" | "POST" | "PUT", rota: string, op: Opcoes = {}, tentativa = 0): Promise<any> {
   const url = new URL(BASE + "/" + rota.replace(/^\/+/, ""));
   for (const [k, v] of Object.entries(op.query ?? {})) if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
   const headers: Record<string, string> = { Authorization: `Bearer ${config.powercrmToken}`, Accept: "application/json" };
@@ -29,6 +29,13 @@ export async function powercrm(metodo: "GET" | "POST" | "PUT", rota: string, op:
   }
   const r = await fetch(url, { method: metodo, headers, body });
   const texto = await r.text();
+  // o Power devolve 500/502/504/520 com frequência; consultas tentam de novo (gravações não, para não duplicar)
+  if (!r.ok && r.status >= 500 && metodo === "GET" || (!r.ok && r.status >= 500 && rota.includes("/api/report/db"))) {
+    if (tentativa < 2) {
+      await new Promise((ok) => setTimeout(ok, 3000 * (tentativa + 1)));
+      return powercrm(metodo, rota, op, tentativa + 1);
+    }
+  }
   if (!r.ok) {
     let msg = texto.slice(0, 600);
     try {
