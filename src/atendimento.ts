@@ -11,6 +11,7 @@ import { q, um } from "./db.js";
 import { config } from "./config.js";
 import { pensar, descreverArquivo, semCredito } from "./agente/cerebro.js";
 import type { Usuario } from "./agente/permissoes.js";
+import { mensagemCitada, descreverCitacao, anotarDepois, atualizarResumo } from "./agente/lembranca.js";
 import * as wa from "./whatsapp/uazapi.js";
 import { falar, transcrever, vozLigada } from "./voz/elevenlabs.js";
 
@@ -53,13 +54,13 @@ async function quemE(telefone: string): Promise<Usuario | null> {
   return ativos.find((u) => chaveTelefone(u.telefone) === chaveTelefone(telefone)) ?? null;
 }
 
-async function registrar(telefone: string, usuarioId: string | null, papel: "user" | "assistant", texto: string, waId: string | null, arquivoId: string | null = null) {
-  await q(`insert into paloma.mensagens (telefone, usuario_id, papel, texto, wa_id, arquivo_id) values ($1,$2,$3,$4,$5,$6) on conflict (wa_id) do nothing`,
-    [telefone, usuarioId, papel, texto, waId, arquivoId]);
+async function registrar(telefone: string, usuarioId: string | null, papel: "user" | "assistant", texto: string, waId: string | null, arquivoId: string | null = null, citadaWaId: string | null = null) {
+  await q(`insert into paloma.mensagens (telefone, usuario_id, papel, texto, wa_id, arquivo_id, citada_wa_id) values ($1,$2,$3,$4,$5,$6,$7) on conflict (wa_id) do nothing`,
+    [telefone, usuarioId, papel, texto, waId, arquivoId, citadaWaId]);
 }
 
 /** Baixa e prepara uma mensagem: devolve o texto para o histórico e os blocos para a Paloma ver. */
-async function preparar(u: Usuario, m: wa.Recebida): Promise<{ texto: string; blocos: Anthropic.ContentBlockParam[]; audio: boolean; arquivoId: string | null }> {
+async function preparar(u: Usuario, m: wa.Recebida): Promise<{ texto: string; blocos: Anthropic.ContentBlockParam[]; audio: boolean; arquivoId: string | null; citadaWaId: string | null }> {
   const blocos: Anthropic.ContentBlockParam[] = [];
   let texto = m.texto || "";
   let audio = false;
@@ -95,8 +96,14 @@ async function preparar(u: Usuario, m: wa.Recebida): Promise<{ texto: string; bl
       texto = `${texto}\n[arquivo recebido: ${m.tipo}${m.nomeArquivo ? ` "${m.nomeArquivo}"` : ""}, arquivo_id ${a.id}${bloco ? "" : `, formato ${midia.mime} que você não consegue abrir`}]`.trim();
     }
   }
-  if (m.citada) texto = `[respondendo a: "${m.citada.slice(0, 300)}"]\n${texto}`;
-  return { texto, blocos, audio, arquivoId };
+  let citadaWaId: string | null = null;
+  if (m.citada || m.citadaId) {
+    const original = await mensagemCitada(u, m.citadaId, m.citada).catch(() => null);
+    const desc = descreverCitacao(u, original, m.citada);
+    if (desc) texto = `${desc}\n${texto}`;
+    citadaWaId = m.citadaId;
+  }
+  return { texto, blocos, audio, arquivoId, citadaWaId };
 }
 
 async function atender(telefone: string, lote: wa.Recebida[]) {
@@ -110,12 +117,15 @@ async function atender(telefone: string, lote: wa.Recebida[]) {
   // mensagem de clientes. Não responde, não mostra "digitando", não grava a mensagem.
   const u = await quemE(telefone);
   if (!u) return;
+  for (const m of novas) q(`insert into paloma.webhooks_brutos (payload) values ($1)`, [JSON.stringify(m.bruto ?? {})]).catch(() => {});
+  wa.marcarLidas(novas.map((m) => m.id).filter(Boolean));
 
   // "digitando…" enquanto ela trabalha (o WhatsApp apaga o indicador depois de alguns segundos)
   await wa.digitando(telefone);
   const presenca = setInterval(() => wa.digitando(telefone), 8000);
   const avisoDemora = setTimeout(async () => {
-    const txt = "Tô puxando aqui nos sistemas, só um instante 🙏";
+    const frases = ["Só um instante que tô conferindo aqui", "Peraí que já te digo", "Deixa eu ver direitinho aqui", "Tô vendo isso agora, um minutinho"];
+    const txt = frases[Math.floor(Math.random() * frases.length)];
     const id = await wa.enviarTexto(telefone, txt).catch(() => null);
     await registrar(telefone, u.id, "assistant", txt, id).catch(() => {});
   }, AVISO_DEMORA_MS);
@@ -127,7 +137,7 @@ async function atender(telefone: string, lote: wa.Recebida[]) {
     for (const m of novas) {
       const p = await preparar(u, m);
       if (!p.texto && !p.blocos.length) continue;
-      await registrar(telefone, u.id, "user", p.texto || "(sem texto)", m.id, p.arquivoId);
+      await registrar(telefone, u.id, "user", p.texto || "(sem texto)", m.id, p.arquivoId, p.citadaWaId);
       blocos.push(...p.blocos);
       textos.push(p.texto);
       veioAudio ||= p.audio;
@@ -153,31 +163,61 @@ async function atender(telefone: string, lote: wa.Recebida[]) {
     // chegou mensagem nova enquanto ela pensava: essa resposta ficou velha. Não envia;
     // a próxima rodada lê tudo (estas mensagens já estão no histórico sem resposta).
     if (pendentes.has(telefone)) return;
+    resposta = resposta.replace(/^\s*\[\d{2}\/\d{2}(,| ) ?\d{2}:\d{2}\]\s*/, ""); // nunca deixa escapar o carimbo do histórico
     await responder(u, telefone, resposta, veioAudio);
+    // memória de longo prazo, em segundo plano (não atrasa nada)
+    anotarDepois(u, juntas, resposta).catch((e) => console.error("anotar", e));
+    atualizarResumo(u).catch((e) => console.error("resumo", e));
   } finally {
     clearTimeout(avisoDemora);
     clearInterval(presenca);
   }
 }
 
+/** Divide uma resposta longa em até 3 mensagens, nos parágrafos, como gente faz no WhatsApp. */
+export function bolhas(texto: string): string[] {
+  const t = texto.trim();
+  if (t.length <= 550) return [t];
+  const paragrafos = t.split(/\n{2,}/);
+  const partes: string[] = [];
+  let atual = "";
+  const alvo = Math.max(450, Math.ceil(t.length / 3));
+  for (const p of paragrafos) {
+    if (atual && (atual.length + p.length > alvo) && partes.length < 2) { partes.push(atual.trim()); atual = p; }
+    else atual = atual ? `${atual}\n\n${p}` : p;
+  }
+  if (atual.trim()) partes.push(atual.trim());
+  return partes;
+}
+
+const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+
 async function responder(u: Usuario, telefone: string, resposta: string, veioAudio: boolean) {
   const modoVoz = String(u.preferencias?.voz || "auto");
   const emAudio = (await vozLigada()) && (modoVoz === "sempre" || (modoVoz === "auto" && veioAudio)) && resposta.length < 1800;
-  let waId: string | null = null;
   if (emAudio) {
     try {
       await wa.digitando(telefone, "recording");
-      waId = await wa.enviarAudio(telefone, await falar(resposta));
+      const waId = await wa.enviarAudio(telefone, await falar(resposta));
+      await registrar(telefone, u.id, "assistant", resposta, waId);
       // dado que precisa ser copiado (placa, código, link) vai também por escrito
       if (/\b[A-Z]{3}-?\d[A-Z0-9]\d{2}\b|\d{6,}|https?:\/\//.test(resposta)) await wa.enviarTexto(telefone, resposta);
+      return;
     } catch (e) {
       console.error("voz", e);
-      waId = await wa.enviarTexto(telefone, resposta);
     }
-  } else {
-    waId = await wa.enviarTexto(telefone, resposta);
   }
-  await registrar(telefone, u.id, "assistant", resposta, waId);
+  const partes = bolhas(resposta);
+  for (let i = 0; i < partes.length; i++) {
+    if (i > 0) {
+      // pausa curta de "digitando" entre uma bolha e outra
+      await wa.digitando(telefone);
+      await espera(Math.min(1200 + partes[i].length * 6, 3500));
+    }
+    const waId = await wa.enviarTexto(telefone, partes[i]);
+    // cada bolha guardada com o próprio id: se a pessoa marcar qualquer uma, a Paloma sabe qual foi
+    await registrar(telefone, u.id, "assistant", partes[i], waId);
+  }
 }
 
 /** Avisa os admins (no máximo 1 vez a cada 3h) que a conta do Claude ficou sem crédito. */

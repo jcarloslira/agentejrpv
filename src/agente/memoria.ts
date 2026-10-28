@@ -5,6 +5,7 @@ import type { Usuario } from "./permissoes.js";
 export type Memoria = { id: number; escopo: "jrpv" | "pessoa"; tipo: string; texto: string; atualizado_em: string };
 
 export async function lembrar(u: Usuario, escopo: "jrpv" | "pessoa", tipo: string, texto: string, origem = "conversa") {
+  if (!texto?.trim()) return { id: 0, atualizada: false };
   const limpo = texto.trim().slice(0, 1500);
   // evita duplicar a mesma memória
   const parecida = await q<{ id: number }>(
@@ -46,12 +47,15 @@ export async function esquecer(u: Usuario, id: number, podeJrpv: boolean) {
 /** O que a Paloma sempre carrega: preferências e casos da pessoa + as regras mais recentes da casa. */
 export async function contexto(u: Usuario): Promise<string> {
   const pessoais = await q<Memoria>(
-    `select id, escopo, tipo, texto, atualizado_em from paloma.memorias where ativo and usuario_id=$1 order by atualizado_em desc limit 15`, [u.id]);
+    `select id, escopo, tipo, texto, atualizado_em from paloma.memorias where ativo and usuario_id=$1
+      order by (tipo='pendencia') desc, atualizado_em desc limit 25`, [u.id]);
   const casa = await q<Memoria>(
     `select id, escopo, tipo, texto, atualizado_em from paloma.memorias where ativo and escopo='jrpv' and tipo in ('regra','procedimento')
       order by atualizado_em desc limit 25`);
   const linhas: string[] = [];
   if (casa.length) linhas.push("Regras e procedimentos da JRPV que você já aprendeu:", ...casa.map((m) => `- [#${m.id}] ${m.texto}`));
-  if (pessoais.length) linhas.push("", `O que você lembra de ${u.apelido || u.nome}:`, ...pessoais.map((m) => `- [#${m.id}] (${m.tipo}) ${m.texto}`));
+  const pend = pessoais.filter((m) => m.tipo === "pendencia"), resto = pessoais.filter((m) => m.tipo !== "pendencia");
+  if (pend.length) linhas.push("", "PENDÊNCIAS em aberto com esta pessoa (retome quando fizer sentido; se já resolveu, use esquecer):", ...pend.map((m) => `- [#${m.id}] ${m.texto}`));
+  if (resto.length) linhas.push("", `O que você lembra de ${u.apelido || u.nome}:`, ...resto.map((m) => `- [#${m.id}] (${m.tipo}) ${m.texto}`));
   return linhas.join("\n");
 }

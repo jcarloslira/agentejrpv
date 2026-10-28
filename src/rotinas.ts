@@ -20,6 +20,7 @@ const PEDIDO_RESUMO = `[rotina automática das 8h — não é mensagem da pessoa
 Monte o resumo da manhã para esta pessoa, de acordo com o papel dela, e responda só com o texto que será enviado no WhatsApp.
 Use as ferramentas para buscar os números de ONTEM (e da semana até ontem, se ajudar): cotações criadas, vendas enviadas ao SGA, destaques por consultor ou cooperativa, cotações paradas em vistoria ou liberadas para cadastro há mais de 2 dias.
 Para gerência/diretoria: inclua também 1 ou 2 alertas da operação, se houver (inadimplência, eventos parados, queda de vendas).
+Se houver PENDÊNCIAS em aberto com esta pessoa (nas suas memórias), lembre a mais importante em uma linha.
 Formato: saudação curta, 3 a 6 linhas com os números, no máximo 2 alertas, e uma pergunta final oferecendo detalhar. Não invente número: se uma consulta falhar, deixe de fora.`;
 
 async function resumoDaManha() {

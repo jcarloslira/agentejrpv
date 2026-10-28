@@ -67,6 +67,12 @@ export async function digitando(numero: string, tipo: "composing" | "recording" 
   await uaz("/message/presence", "POST", { number: numero, presence: tipo, delay: 4000 }).catch(() => {});
 }
 
+/** Marca como lidas (os dois tracinhos azuis), como uma pessoa que abriu a conversa. */
+export async function marcarLidas(ids: string[]) {
+  if (!ids.length) return;
+  await uaz("/message/markread", "POST", { id: ids }).catch(() => {});
+}
+
 export async function enviarTexto(numero: string, texto: string): Promise<string | null> {
   const r = await uaz("/send/text", "POST", { number: numero, text: texto, linkPreview: false });
   return r.messageid || r.id || null;
@@ -102,6 +108,8 @@ export type Recebida = {
   tipo: "texto" | "audio" | "imagem" | "documento" | "video" | "outro";
   nomeArquivo: string | null;
   citada: string | null; // texto da mensagem respondida (reply)
+  citadaId: string | null; // id da mensagem respondida, para achar a mensagem inteira no histórico
+  bruto: unknown; // payload original (guardado só para quem é da equipe)
 };
 
 const digitos = (s: unknown) => String(s ?? "").replace(/\D/g, "");
@@ -126,6 +134,10 @@ export function lerWebhook(b: any): Recebida | null {
     texto: typeof msg.text === "string" ? msg.text : (conteudo.caption || ""),
     tipo,
     nomeArquivo: conteudo.fileName || conteudo.title || null,
-    citada: msg.quoted?.text || conteudo.contextInfo?.quotedMessage?.conversation || null,
+    citada: (typeof msg.quoted === "object" ? msg.quoted?.text : null) || conteudo.contextInfo?.quotedMessage?.conversation
+      || conteudo.contextInfo?.quotedMessage?.extendedTextMessage?.text || null,
+    citadaId: (typeof msg.quoted === "string" && msg.quoted ? msg.quoted : null) || msg.quoted?.messageid || msg.quoted?.id
+      || conteudo.contextInfo?.stanzaID || conteudo.contextInfo?.stanzaId || null,
+    bruto: b,
   };
 }

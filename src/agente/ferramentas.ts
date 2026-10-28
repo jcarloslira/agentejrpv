@@ -9,6 +9,7 @@ import { sga, dataBR, rotaDoCatalogo, rotaSgaGrava, rotasSga } from "../integrac
 import { powercrm, rotasPowerCrm, COLUNAS_FUNIL, STATUS_CARD } from "../integracoes/powercrm.js";
 import { pode, rotaSgaRestritaDiretoria, SemPermissao, type Papel, type Usuario } from "./permissoes.js";
 import * as memoria from "./memoria.js";
+import { buscarConversas } from "./lembranca.js";
 import { enviarTexto } from "../whatsapp/uazapi.js";
 
 export type Contexto = {
@@ -597,11 +598,28 @@ const F: Ferramenta[] = [
     nome: "lembrar",
     descricao: "Guarda algo para lembrar depois. escopo 'pessoa' = só sobre quem está falando (preferências, casos em andamento). escopo 'jrpv' = regra/procedimento da casa, vale para todos (só gerência/diretoria ensinam regra da casa; de outros, guarde como 'pessoa').",
     papel: "consultor",
-    esquema: { type: "object", properties: { escopo: { type: "string", enum: ["pessoa", "jrpv"] }, tipo: { type: "string", enum: ["regra", "procedimento", "fato", "preferencia", "caso"] }, texto: { type: "string" } }, required: ["escopo", "tipo", "texto"] },
+    esquema: { type: "object", properties: { escopo: { type: "string", enum: ["pessoa", "jrpv"] }, tipo: { type: "string", enum: ["regra", "procedimento", "fato", "preferencia", "caso", "pendencia"] }, texto: { type: "string" } }, required: ["escopo", "tipo", "texto"] },
     async executar(ctx, e) {
       const escopo = e.escopo === "jrpv" && !pode(ctx.usuario, "gerencia") ? "pessoa" : e.escopo;
       const r = await memoria.lembrar(ctx.usuario, escopo, e.tipo, e.texto);
       return `Memória ${r.atualizada ? "atualizada" : "guardada"} (#${r.id}, ${escopo}).`;
+    },
+  },
+  {
+    nome: "buscar_conversas",
+    descricao: "Procura em TODO o histórico de WhatsApp com esta pessoa (desde o primeiro dia), por palavra, placa, nome, código ou período. Use quando a pessoa citar algo antigo ('aquela cotação da semana passada', 'o que você me disse sobre...') ou quando precisar lembrar exatamente o que foi dito. Gerência+ pode buscar nas conversas de toda a equipe com todos=true.",
+    papel: "consultor",
+    esquema: {
+      type: "object",
+      properties: {
+        termo: { type: "string", description: "palavras, placa, nome ou código (vazio = todas as mensagens do período)" },
+        de: { type: "string", description: "aaaa-mm-dd" }, ate: { type: "string", description: "aaaa-mm-dd" },
+        todos: { type: "boolean" },
+      },
+    },
+    async executar(ctx, e) {
+      const r = await buscarConversas(ctx.usuario, e.termo || "", e.de, e.ate, !!e.todos && pode(ctx.usuario, "gerencia"));
+      return r.length ? json(r, 14000) : "Não achei nada nas conversas com esses termos.";
     },
   },
   {

@@ -9,6 +9,7 @@ import { PERSONA } from "./persona.js";
 import { ferramentasPara, executar, acoesPendentes } from "./ferramentas.js";
 import { DESCRICAO_PAPEL, type Usuario } from "./permissoes.js";
 import * as memoria from "./memoria.js";
+import { JANELA, resumoDaPessoa } from "./lembranca.js";
 
 const client = new Anthropic({ apiKey: config.anthropicKey });
 const MAX_PASSOS = 14;
@@ -21,13 +22,16 @@ function agoraTexto() {
 // Busca pela PESSOA (usuario_id), não pelo telefone: o WhatsApp entrega o número às vezes com,
 // às vezes sem o 9º dígito. Mensagens do turno atual (criadas depois de `antes`) ficam de fora.
 async function historico(usuarioId: string, antes: Date): Promise<Anthropic.MessageParam[]> {
-  const rows = (await q<{ papel: string; texto: string }>(
-    `select papel, texto from paloma.mensagens where usuario_id=$1 and criado_em < $2 and criado_em > now() - interval '3 days'
-      order by criado_em desc limit 30`, [usuarioId, antes])).reverse();
+  const rows = (await q<{ papel: string; texto: string; criado_em: string }>(
+    `select papel, texto, criado_em from paloma.mensagens where usuario_id=$1 and criado_em < $2
+      order by criado_em desc limit $3`, [usuarioId, antes, JANELA])).reverse();
+  const hora = new Intl.DateTimeFormat("pt-BR", { timeZone: config.fuso, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   const msgs: Anthropic.MessageParam[] = [];
   for (const r of rows) {
     const role = r.papel === "user" ? "user" : "assistant";
-    const texto = r.papel === "aviso" ? `[aviso enviado por você] ${r.texto}` : r.texto;
+    // data e hora de cada mensagem: ela sabe o que mandou, quando, e o que foi a última coisa dita
+    const carimbo = `[${hora.format(new Date(r.criado_em))}]`;
+    const texto = r.papel === "aviso" ? `${carimbo} [mensagem que você mandou por iniciativa própria] ${r.texto}` : `${carimbo} ${r.texto}`;
     const ult = msgs[msgs.length - 1];
     if (ult && ult.role === role) ult.content = `${ult.content}\n\n${texto}`;
     else msgs.push({ role, content: texto });
@@ -49,7 +53,7 @@ export const semCredito = (e: unknown) => e instanceof Anthropic.APIError && /cr
 export async function pensar(e: Entrada): Promise<string> {
   const u = e.usuario;
   const ferramentas = ferramentasPara(u);
-  const [lembrancas, pendentes] = await Promise.all([memoria.contexto(u), acoesPendentes(u.id)]);
+  const [lembrancas, pendentes, resumo] = await Promise.all([memoria.contexto(u), acoesPendentes(u.id), resumoDaPessoa(u.id)]);
   const sistema: Anthropic.TextBlockParam[] = [
     { type: "text", text: PERSONA, cache_control: { type: "ephemeral" } },
     {
@@ -59,8 +63,10 @@ export async function pensar(e: Entrada): Promise<string> {
         `Você está falando com ${u.nome}${u.apelido ? ` (chame de ${u.apelido})` : ""}, ${DESCRICAO_PAPEL[u.papel]}.`,
         u.codigo_voluntario ? `Código de voluntário no SGA: ${u.codigo_voluntario}.` : "",
         u.powercrm_email ? `E-mail no Power CRM: ${u.powercrm_email}.` : "",
+        resumo,
         lembrancas,
         pendentes,
+        "As mensagens do histórico vêm com [data hora] no começo só para você se situar no tempo; não escreva esse carimbo nas suas respostas.",
       ].filter(Boolean).join("\n"),
     },
   ];
