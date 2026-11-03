@@ -65,15 +65,32 @@ async function vendedores(): Promise<string[]> {
  *   #pneus                → liga/desliga a demonstração para o próprio número
  *   #pneus 5562999999999  → libera outro número       #pneus tirar 5562... → tira
  *   #pneus vendedor 5562… → quem recebe as transferências   #pneus status
+ *   #pneus chamar 5562… [texto] → a loja manda a 1ª mensagem (puxa assunto) e libera o número
  */
-export async function comando(telefoneAdmin: string, texto: string): Promise<string> {
-  const partes = texto.trim().split(/\s+/).slice(1);
+const ABERTURA = "Opa, boa tarde! Tudo beleza? Aqui é da Taipneus 😄 Me manda a medida que você tá precisando " +
+  "(do jeito que seus clientes mandam, tipo 205 40 17, dois pneus) que eu já te mostro o que tem no estoque, com foto e valor.";
+export async function comando(telefoneAdmin: string, texto_: string): Promise<string> {
+  const partes = texto_.trim().split(/\s+/).slice(1);
   const atual = (await um<{ valor: any }>(`select valor from paloma.config where chave='pneus:demo'`))?.valor ?? {};
   const telefones: string[] = (atual.telefones ?? []).map(digitos);
   let vend: string[] = (atual.vendedores ?? []).map(digitos);
   const num = digitos(partes.find((p) => digitos(p).length >= 10) || "");
   const tem = (lista: string[], t: string) => lista.some((x) => fim8(x) === fim8(t));
   let msg: string;
+
+  if (partes[0] === "chamar" && num) {
+    // a loja puxa assunto: a mensagem entra no histórico, e a resposta do cliente já cai aqui com contexto
+    const texto = texto_.replace(/^\s*#pneus\s+chamar\s+\S+\s*/i, "").trim() || ABERTURA;
+    if (!tem(telefones, num)) telefones.push(num);
+    await q(`insert into paloma.config (chave, valor) values ('pneus:demo', $1) on conflict (chave) do update set valor=excluded.valor, atualizado_em=now()`,
+      [JSON.stringify({ ...atual, telefones, vendedores: vend })]);
+    liberadosCache = null;
+    const e: Estado = { telefone: num, nome: null, desde: new Date().toISOString(), ultimoCliente: null, etapa: 0, naoResponsivo: false, transferido: null };
+    await salvar(e);
+    const id = await wa.enviarTexto(num, texto);
+    await registrar(num, "assistant", texto, id);
+    return `Mandei para ${num}:\n"${texto}"`;
+  }
 
   if (partes[0] === "status") {
     msg = `Demonstração TAIPNEUS\nNúmeros: ${(await liberados()).join(", ") || "nenhum"}\nVendedor: ${(await vendedores()).join(", ")}`;
@@ -127,7 +144,8 @@ async function historico(e: Estado, antes: Date): Promise<Anthropic.MessageParam
     if (ult && ult.role === role) ult.content = `${ult.content}\n${r.texto}`;
     else msgs.push({ role, content: r.texto });
   }
-  while (msgs.length && msgs[0].role !== "user") msgs.shift();
+  // a API pede que comece pelo cliente; quando foi a loja que puxou assunto, isso fica dito
+  if (msgs.length && msgs[0].role !== "user") msgs.unshift({ role: "user", content: "[a loja puxou assunto com este cliente]" });
   return msgs;
 }
 
