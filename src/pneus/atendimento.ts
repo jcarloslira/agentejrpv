@@ -252,6 +252,22 @@ export async function atender(telefone: string, lote: wa.Recebida[]) {
   }
 }
 
+/**
+ * Pedido de "chamar" gravado direto no banco (chave pneus:chamar:<qualquer>, valor {telefone, texto?}),
+ * para disparar sem precisar do WhatsApp do admin. Apaga antes de enviar: não manda em dobro.
+ */
+export async function chamadasPendentes() {
+  const fila = await q<{ chave: string; valor: any }>(`delete from paloma.config where chave like 'pneus:chamar:%' returning chave, valor`);
+  for (const f of fila) {
+    const tel = digitos(f.valor?.telefone);
+    if (tel.length < 10) continue;
+    const r = await comando(config.adminTelefone, `#pneus chamar ${tel} ${String(f.valor?.texto || "")}`)
+      .catch((e) => `Não consegui chamar ${tel}: ${e?.message || e}`);
+    console.log("pneus chamar", tel, r.slice(0, 80));
+    await avisarVendedor(`📤 ${r}`).catch(() => {});
+  }
+}
+
 // ---------- reengajamento ----------
 
 export async function reengajar() {

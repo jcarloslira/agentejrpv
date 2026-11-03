@@ -8,7 +8,7 @@ import { config } from "./config.js";
 import { pensar, semCredito } from "./agente/cerebro.js";
 import { mandarPorConta, avisarAdminSemCredito, retomarQuemFicouSemResposta } from "./atendimento.js";
 import type { Usuario } from "./agente/permissoes.js";
-import { reengajar as reengajarPneus } from "./pneus/atendimento.js";
+import { reengajar as reengajarPneus, chamadasPendentes } from "./pneus/atendimento.js";
 import { estoque as estoquePneus } from "./pneus/catalogo.js";
 
 function agoraLocal() {
@@ -55,4 +55,5 @@ export function iniciarRotinas() {
   estoquePneus().catch((e) => console.error("estoque pneus", e));
   setInterval(() => { estoquePneus().catch(() => {}); }, 10 * 60e3);
   setInterval(() => { reengajarPneus().catch((e) => console.error("pneus reengajar", e)); }, 60e3);
+  setInterval(() => { chamadasPendentes().catch((e) => console.error("pneus chamar", e)); }, 20e3);
 }
