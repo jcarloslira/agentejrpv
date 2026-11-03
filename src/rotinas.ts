@@ -8,6 +8,8 @@ import { config } from "./config.js";
 import { pensar, semCredito } from "./agente/cerebro.js";
 import { mandarPorConta, avisarAdminSemCredito, retomarQuemFicouSemResposta } from "./atendimento.js";
 import type { Usuario } from "./agente/permissoes.js";
+import { reengajar as reengajarPneus } from "./pneus/atendimento.js";
+import { estoque as estoquePneus } from "./pneus/catalogo.js";
 
 function agoraLocal() {
   const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
@@ -48,4 +50,9 @@ export function iniciarRotinas() {
   setInterval(() => { resumoDaManha().catch((e) => console.error("rotinas", e)); }, 60e3);
   // a cada 3 min: se alguém ficou sem resposta por falta de crédito e o crédito voltou, retoma
   setInterval(() => { retomarQuemFicouSemResposta().catch((e) => console.error("retomada", e)); }, 3 * 60e3);
+  // demonstração TAIPNEUS: estoque já carregado (o 1º acesso ao Ômie leva ~15 s),
+  // retomadas 10 min / 40 min / 3h40 e Não Responsivo
+  estoquePneus().catch((e) => console.error("estoque pneus", e));
+  setInterval(() => { estoquePneus().catch(() => {}); }, 10 * 60e3);
+  setInterval(() => { reengajarPneus().catch((e) => console.error("pneus reengajar", e)); }, 60e3);
 }

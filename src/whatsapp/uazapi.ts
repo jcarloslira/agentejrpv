@@ -90,6 +90,12 @@ export async function enviarDocumento(numero: string, base64: string, mime: stri
   return r.messageid || r.id || null;
 }
 
+/** Foto a partir de um link (ex.: a foto do produto no Ômie), com legenda. */
+export async function enviarMidiaUrl(numero: string, url: string, legenda = ""): Promise<string | null> {
+  const r = await uaz("/send/media", "POST", { number: numero, type: "image", file: url, text: legenda });
+  return r.messageid || r.id || null;
+}
+
 /** Baixa a mídia de uma mensagem recebida. */
 export async function baixarMidia(messageId: string): Promise<{ base64: string; mime: string } | null> {
   const d = await uaz("/message/download", "POST", { id: messageId, return_base64: true, return_link: false, generate_mp3: true });
