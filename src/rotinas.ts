@@ -6,7 +6,7 @@
 import { q } from "./db.js";
 import { config } from "./config.js";
 import { pensar, semCredito } from "./agente/cerebro.js";
-import { mandarPorConta, avisarAdminSemCredito } from "./atendimento.js";
+import { mandarPorConta, avisarAdminSemCredito, retomarQuemFicouSemResposta } from "./atendimento.js";
 import type { Usuario } from "./agente/permissoes.js";
 
 function agoraLocal() {
@@ -46,4 +46,6 @@ async function resumoDaManha() {
 
 export function iniciarRotinas() {
   setInterval(() => { resumoDaManha().catch((e) => console.error("rotinas", e)); }, 60e3);
+  // a cada 3 min: se alguém ficou sem resposta por falta de crédito e o crédito voltou, retoma
+  setInterval(() => { retomarQuemFicouSemResposta().catch((e) => console.error("retomada", e)); }, 3 * 60e3);
 }

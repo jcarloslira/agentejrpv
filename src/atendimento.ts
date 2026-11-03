@@ -152,8 +152,11 @@ async function atender(telefone: string, lote: wa.Recebida[]) {
     } catch (e) {
       console.error("pensar", e);
       if (semCredito(e)) {
-        resposta = "Vixe, tô sem fôlego agora: os créditos da minha inteligência acabaram. Já avisei o administrador pra recarregar. Assim que voltar, te respondo 🙏";
+        resposta = "Vixe, tô sem fôlego agora: os créditos da minha inteligência acabaram. Já avisei o administrador pra recarregar. Assim que voltar, eu retomo daqui 🙏";
         avisarAdminSemCredito().catch(() => {});
+        // anota quem ficou sem resposta: quando o crédito voltar, ela retoma sozinha
+        q(`insert into paloma.config (chave, valor) values ($1, $2) on conflict (chave) do update set valor=excluded.valor, atualizado_em=now()`,
+          [`retomar:${u.id}`, JSON.stringify({ telefone })]).catch(() => {});
       } else {
         resposta = "Vixe, deu um problema aqui do meu lado e não consegui terminar. Tenta de novo daqui a pouquinho? Se continuar, avisa a gerência.";
       }
@@ -192,7 +195,7 @@ export function bolhas(texto: string): string[] {
 
 const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 
-async function responder(u: Usuario, telefone: string, resposta: string, veioAudio: boolean) {
+export async function responder(u: Usuario, telefone: string, resposta: string, veioAudio: boolean) {
   const modoVoz = String(u.preferencias?.voz || "auto");
   const emAudio = (await vozLigada()) && (modoVoz === "sempre" || (modoVoz === "auto" && veioAudio)) && resposta.length < 1800;
   if (emAudio) {
@@ -229,6 +232,33 @@ export async function avisarAdminSemCredito() {
   const admins = await q<Usuario>(`select * from paloma.usuarios where ativo and papel='admin'`);
   for (const a of admins) {
     await mandarPorConta(a, "⚠️ Os créditos da API do Claude acabaram e eu parei de responder a equipe. Recarregue em console.anthropic.com → Billing (vale ligar a recarga automática).").catch(() => {});
+  }
+}
+
+const PEDIDO_RETOMADA = `[aviso interno, não é mensagem da pessoa] Você ficou fora do ar por falta de crédito e voltou agora.
+As últimas mensagens da pessoa ficaram SEM resposta de verdade (as suas mensagens de "sem fôlego" não contam).
+Retome de onde parou: faça o que ela pediu (consulte o que precisar e prepare as ações necessárias) e responda de forma natural,
+começando com algo como "Voltei!" e indo direto ao assunto. Não fale de crédito nem de sistema.`;
+
+/** Depois que o crédito volta: responde quem ficou esperando, sem a pessoa precisar pedir de novo. */
+export async function retomarQuemFicouSemResposta() {
+  const fila = await q<{ chave: string; valor: any }>(`select chave, valor from paloma.config where chave like 'retomar:%'`);
+  if (!fila.length) return;
+  for (const f of fila) {
+    const u = await um<Usuario>(`select * from paloma.usuarios where ativo and id::text = $1`, [f.chave.slice("retomar:".length)]);
+    await q(`delete from paloma.config where chave=$1`, [f.chave]);
+    if (!u) continue;
+    const telefone = f.valor?.telefone || u.telefone;
+    try {
+      const resposta = await pensar({ usuario: u, conteudo: [{ type: "text", text: PEDIDO_RETOMADA }], inicioTurno: new Date() });
+      await responder(u, telefone, resposta, false);
+    } catch (e) {
+      console.error("retomada", u.nome, e);
+      if (semCredito(e)) { // ainda sem crédito: volta para a fila
+        await q(`insert into paloma.config (chave, valor) values ($1,$2) on conflict do nothing`, [f.chave, JSON.stringify(f.valor)]);
+        return;
+      }
+    }
   }
 }
 

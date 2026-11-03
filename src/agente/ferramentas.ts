@@ -296,7 +296,7 @@ const F: Ferramenta[] = [
       }
       const corpo = {
         name: e.nome, phone: digitos(e.telefone), email: e.email, plts: e.placa ? placaLimpa(e.placa) : undefined, chassi: e.chassi,
-        registration: e.cpf ? digitos(e.cpf) : undefined, workVehicle: !!e.veiculo_trabalho, pwrlnk, mdl: e.modelo_id, mdlYr: e.ano_modelo_id, city: e.cidade_id,
+        registration: e.cpf ? digitos(e.cpf) : undefined, workVehicle: !!e.veiculo_trabalho, pwrlnk, slsmnNwId: pwrlnk, mdl: e.modelo_id, mdlYr: e.ano_modelo_id, city: e.cidade_id,
       };
       return prepararAcao(ctx, "powercrm", "POST", "/api/quotation/add", { corpo },
         `Criar cotação no Power CRM: ${e.nome}, tel ${e.telefone}${e.placa ? `, placa ${placaLimpa(e.placa)}` : ", sem placa"}${e.modelo_id ? ", com o veículo escolhido" : ""}${e.cidade_id ? ", com a cidade de circulação" : ""}${emailConsultor ? `, no nome do consultor ${emailConsultor}` : ", sem consultor definido"}.`);
@@ -334,7 +334,14 @@ const F: Ferramenta[] = [
   },
   {
     nome: "cotacao_atualizar",
-    descricao: "Prepara alteração de dados de uma cotação no Power CRM (dados pessoais, endereço, veículo, plano tppId, dia de vencimento, observações do contrato). Campos no formato da API: mdl (id do modelo) e mdlYr (id do ano-modelo) e city (id da cidade de circulação) vindos de tabelas_powercrm; pwrlnk (powerlinkId do consultor, para dar dono a uma cotação sem consultor); name, fullName, email, phoneMobile1, registration (CPF), rg, birthdate, cnh, addressZipcode, addressAddress, addressNumber, addressNeighborhood, plates, chassi, renavam, color, kmtr, tppId, expirationDay, noteContract, protectedValue. Gera ação pendente.",
+    descricao: `Prepara alteração de uma cotação no Power CRM (gera ação pendente). Campos aceitos (nomes exatos da API):
+- PLANO E OPCIONAIS: tppId = id do plano escolhido (vem em cotacao_detalhar → planos); optionals = LISTA com os ids de TODOS os opcionais que devem ficar marcados (também vem em cotacao_detalhar). Funciona: já marcamos plano e opcionais assim.
+- CONSULTOR (dono da cotação): slsmnNwId = powerlinkId do consultor (pegue com o e-mail dele em /api/consultant/powerlink). É ESTE campo que troca o dono; pwrlnk sozinho não troca.
+- CLIENTE: name, fullName, registration (CPF/CNPJ só números → aparece na aba Contato), rg, rgExpeditor, birthdate, email, phone, phoneMobile1, phoneMobile2, phoneHome, phoneWork, addressZipcode, addressAddress, addressNumber, addressComplement, addressNeighborhood.
+- CNH: cnh (número), cnhExpiration (validade), firstQualification (1ª habilitação).
+- VEÍCULO: mdl (id do modelo) e mdlYr (id do ano) de tabelas_powercrm, plates, chassi, renavam, engineNumber, fabricationYear, fuel (1 flex, 2 gasolina, 3 álcool, 4 diesel, 5 GNV, 7 elétrico, 8 híbrido), shift (1 manual, 2 automático), kmtr, protectedValue, workVehicle.
+- CIRCULAÇÃO E COBRANÇA: city (id da cidade de tabelas_powercrm), expirationDay (dia de vencimento), noteContract (observações), discount.
+Datas no formato dd/mm/aaaa. Ao receber CNH ou CRLV, leia o documento e preencha de uma vez tudo o que ele trouxer.`,
     papel: "consultor",
     esquema: { type: "object", properties: { codigo: { type: "string" }, campos: { type: "object", additionalProperties: true } }, required: ["codigo", "campos"] },
     async executar(ctx, e) {
@@ -465,7 +472,8 @@ const F: Ferramenta[] = [
       required: ["codigo_veiculo", "codigo_tipo", "arquivo_ids"],
     },
     async executar(ctx, e) {
-      const arqs = await q(`select id, nome, mime, encode(conteudo,'base64') b64 from paloma.arquivos where id = any($1::uuid[])`, [e.arquivo_ids]);
+      const arqs = (await q(`select id, nome, mime, conteudo from paloma.arquivos where id = any($1::uuid[])`, [e.arquivo_ids]))
+        .map((a: any) => ({ ...a, b64: Buffer.from(a.conteudo).toString("base64") }));
       if (!arqs.length) return "Não achei esses arquivos.";
       const foto = arqs.map((a: any, i: number) => ({ nome_arquivo: a.nome || `foto_${i + 1}.jpg`, codigo_tipo: e.codigo_tipo, binario: a.b64 }));
       const corpo: any = { codigo_veiculo: e.codigo_veiculo, foto };
@@ -649,8 +657,9 @@ const F: Ferramenta[] = [
     papel: "consultor",
     esquema: { type: "object", properties: { arquivo_id: { type: "string" } }, required: ["arquivo_id"] },
     async executar(ctx, e) {
-      const a = await um(`select mime, nome, encode(conteudo,'base64') b64 from paloma.arquivos where id=$1 and (usuario_id=$2 or $3)`, [e.arquivo_id, ctx.usuario.id, pode(ctx.usuario, "cadastro")]);
+      const a = await um(`select mime, nome, conteudo from paloma.arquivos where id=$1 and (usuario_id=$2 or $3)`, [e.arquivo_id, ctx.usuario.id, pode(ctx.usuario, "cadastro")]);
       if (!a) return "Não achei esse arquivo.";
+      a.b64 = Buffer.from(a.conteudo).toString("base64");
       if (a.mime === "application/pdf") return [{ type: "document", source: { type: "base64", media_type: "application/pdf", data: a.b64 } } as any, { type: "text", text: a.nome || "PDF" }];
       if (/^image\/(jpeg|png|gif|webp)$/.test(a.mime)) return [{ type: "image", source: { type: "base64", media_type: a.mime, data: a.b64 } }, { type: "text", text: a.nome || "imagem" }];
       return `Arquivo ${a.nome || ""} (${a.mime}) não é imagem nem PDF.`;
