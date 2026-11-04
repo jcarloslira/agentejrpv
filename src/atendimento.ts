@@ -14,6 +14,7 @@ import type { Usuario } from "./agente/permissoes.js";
 import { mensagemCitada, descreverCitacao, anotarDepois, atualizarResumo } from "./agente/lembranca.js";
 import * as wa from "./whatsapp/uazapi.js";
 import { falar, transcrever, vozLigada } from "./voz/elevenlabs.js";
+import * as pneus from "./pneus/atendimento.js";
 
 const ESPERA_TEXTO_MS = 6000;   // silêncio que fecha a rajada ("tudo certo" + "preciso de uma cotação")
 const ESPERA_MIDIA_MS = 6000;   // depois de arquivo/áudio costuma vir legenda ou outro arquivo
@@ -113,9 +114,19 @@ async function atender(telefone: string, lote: wa.Recebida[]) {
   const novas = lote.filter((m) => !m.id || !jaVistas.has(m.id));
   if (!novas.length) return;
 
+  // Demonstração da TAIPNEUS: "#pneus" de quem administra liga/desliga; os números liberados
+  // falam com a atendente de pneus e nunca chegam à Paloma.
+  const u = await quemE(telefone);
+  const cmd = novas.find((m) => /^\s*#pneus\b/i.test(m.texto));
+  if (cmd && u && ["admin", "diretoria", "gerencia"].includes(u.papel)) {
+    const txt = await pneus.comando(telefone, cmd.texto).catch((e) => `Não consegui: ${e?.message || e}`);
+    await wa.enviarTexto(telefone, txt);
+    return;
+  }
+  if (await pneus.ehDemo(telefone)) return pneus.atender(telefone, novas);
+
   // Silêncio total para quem não está cadastrado: o número pode ser comercial e receber
   // mensagem de clientes. Não responde, não mostra "digitando", não grava a mensagem.
-  const u = await quemE(telefone);
   if (!u) return;
   for (const m of novas) q(`insert into paloma.webhooks_brutos (payload) values ($1)`, [JSON.stringify(m.bruto ?? {})]).catch(() => {});
   wa.marcarLidas(novas.map((m) => m.id).filter(Boolean));

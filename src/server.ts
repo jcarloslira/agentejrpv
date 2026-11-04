@@ -11,6 +11,7 @@ import { config, faltando } from "./config.js";
 import { q, pool } from "./db.js";
 import { enfileirar, garantirAdmin } from "./atendimento.js";
 import { iniciarRotinas } from "./rotinas.js";
+import { vendedorRespondeu } from "./pneus/atendimento.js";
 import * as wa from "./whatsapp/uazapi.js";
 import { sincronizar, gravarCotacoes } from "./sync/powercrm.js";
 import { listarVozes, vozLigada } from "./voz/elevenlabs.js";
@@ -37,6 +38,11 @@ app.post<{ Params: { segredo: string } }>("/webhook/whatsapp/:segredo", async (r
   if (!igual(req.params.segredo, config.webhookSegredo)) return rep.code(403).send();
   const m = wa.lerWebhook(req.body);
   if (m) enfileirar(m);
+  else {
+    // digitada no celular do número: na demonstração de pneus é o vendedor assumindo
+    const p = wa.lerEnviadaPeloCelular(req.body);
+    if (p) vendedorRespondeu(p).catch((e) => app.log.error(e, "vendedor respondeu"));
+  }
   return { ok: true };
 });
 
