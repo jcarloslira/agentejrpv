@@ -36,3 +36,29 @@ test("busca exata, com foto e mais barato primeiro; senão a medida mais próxim
   assert.ok(s.parecidos.every((p) => p.medida!.aro === 17));
   assert.equal(legenda(itens[0]).replace(/ /g, " "),"PNEU ARO 17 FORCELAND 205/40R17 84W XL VITALITY F22\nR$ 410,00");
 });
+
+const { noTom } = await import("../pneus/agente.js");
+const { proximaRetomada } = await import("../pneus/atendimento.js");
+
+test("tom da loja: sem emoji, sem risada, sem diminutivo e sem 'taí'", () => {
+  assert.equal(noTom("Show! Só um minutinho que já te falo 👍"), "Show! Só um momento que já te falo");
+  assert.equal(noTom("Taí o Goodyear. Tenho 6 dele aqui 👍🏻"), "Aqui está o Goodyear. Tenho 6 dele aqui");
+  assert.equal(noTom("Valeu kkkk"), "Valeu");
+  assert.equal(noTom("Tivemos um probleminha 🙏"), "Tivemos um problema");
+  assert.equal(noTom("Esse valor é no Pix. No cartão, até 4x sem juros."), "Esse valor é no Pix. No cartão, até 4x sem juros.");
+});
+
+test("follow-up escalonado: quente mais curto, um no dia seguinte, depois Não Responsivo", () => {
+  const quente = { etapa: 0, quente: true }, frio = { etapa: 0, quente: false };
+  assert.equal(proximaRetomada(quente, 9), null);
+  assert.deepEqual(proximaRetomada(quente, 10), { tipo: "primeira" });
+  assert.equal(proximaRetomada({ etapa: 1, quente: true }, 29), null);
+  assert.deepEqual(proximaRetomada({ etapa: 1, quente: true }, 30), { tipo: "meio" });
+  assert.deepEqual(proximaRetomada({ etapa: 3, quente: true }, 90), { tipo: "ultima_do_dia" });
+  assert.equal(proximaRetomada({ etapa: 1, quente: false }, 30), null);
+  assert.deepEqual(proximaRetomada({ etapa: 1, quente: false }, 40), { tipo: "meio" });
+  assert.deepEqual(proximaRetomada({ etapa: 4, quente: false }, 1440), { tipo: "dia_seguinte" });
+  assert.equal(proximaRetomada({ etapa: 5, quente: false }, 1500), null);
+  assert.deepEqual(proximaRetomada({ etapa: 5, quente: false }, 1680), { naoResponsivo: true });
+  assert.ok(proximaRetomada(frio, 10));
+});

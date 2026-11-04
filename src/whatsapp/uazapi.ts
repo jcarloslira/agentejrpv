@@ -120,6 +120,20 @@ export type Recebida = {
 
 const digitos = (s: unknown) => String(s ?? "").replace(/\D/g, "");
 
+/**
+ * Mensagem que alguém digitou no próprio celular do número (não pela API): é o vendedor
+ * assumindo a conversa. Devolve para quem foi e o texto.
+ */
+export function lerEnviadaPeloCelular(b: any): { id: string; telefone: string; texto: string } | null {
+  if (b?.EventType !== "messages") return null;
+  const msg = b.message || {};
+  const chatid = String(msg.chatid || "");
+  if (!msg.fromMe || msg.wasSentByApi || msg.isGroup || !chatid.endsWith("@s.whatsapp.net")) return null;
+  const conteudo = typeof msg.content === "object" && msg.content ? msg.content : {};
+  const texto = typeof msg.text === "string" && msg.text ? msg.text : (conteudo.caption || `[${String(msg.messageType || "mídia")}]`);
+  return { id: String(msg.messageid || msg.id || ""), telefone: digitos(b.chat?.phone || chatid.split("@")[0]), texto };
+}
+
 export function lerWebhook(b: any): Recebida | null {
   if (b?.EventType !== "messages") return null;
   const msg = b.message || {};

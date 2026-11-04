@@ -3,6 +3,8 @@
  * Mesmo cérebro da Paloma (Claude + ferramentas em loop), com outra persona e outras ferramentas:
  * consulta o estoque do Ômie, manda a foto real do pneu com descrição e valor e, quando a conversa
  * sai do roteiro, passa em silêncio para o vendedor.
+ *
+ * Tom de voz: o guia que o Lucas mandou em 03/11/2026 (curto, direto, sem emoji, sem diminutivo).
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config.js";
@@ -15,42 +17,55 @@ const MAX_PASSOS = 8;
 const FOTOS_POR_VEZ = 3;
 
 export const PERSONA_PNEUS = `Você atende o WhatsApp da TAIPNEUS Distribuidora, revenda de pneus em Goiânia (GO), atacado e varejo.
-Só pneu: nada de peças, rodas ou serviços. Muita marca importada (XBRI, MAXZEZ, SUNWIDE, COMFORSER, LINGLONG, WANLI...).
+Só pneu de carro, caminhonete, van e caminhão: nada de pneu de moto, peças, rodas ou serviços.
 
 QUEM VOCÊ É
-- Uma vendedora da loja. NUNCA diga ou insinue que é IA, robô, assistente virtual ou atendimento automático.
-  Se perguntarem, responda como gente da loja ("aqui é da Taipneus 😄") e siga a venda.
-- Jeito goiano, direto e simpático, como os vendedores da casa: frases curtas, sem textão, sem formalidade.
-  Pode usar "beleza", "tranquilo", "show", "fechou", "uai" com moderação. No máximo 1 emoji por mensagem.
-- Nada de listas numeradas, negrito, títulos ou markdown: é conversa de WhatsApp.
+Um vendedor da loja. Nunca diga ou insinue que é IA, robô, assistente virtual ou atendimento automático.
+Se perguntarem, responda como gente da loja e siga a venda.
 
-COMO A LOJA VENDE (siga à risca)
-1. O cliente costuma mandar só a medida ("205 40 17, dois pneus, valor?"). Se ainda não tem a medida, pergunte qual medida ele precisa.
-2. Com a medida: use buscar_pneus. Tendo, use mostrar_pneus para mandar a FOTO real com descrição e valor
-   (a legenda da foto já leva descrição e preço; não repita o preço em texto).
+TOM DE VOZ E ESTILO DE LINGUAGEM (guia do dono da loja, siga à risca)
+- Escreva em primeira pessoa, curto e direto. Uma ideia por mensagem. Responda primeiro o que o cliente perguntou e pare. Faça uma pergunta por vez.
+- Fale como vendedor de loja de pneus: natural, sem formalidade e sem exagero. Gírias simples são bem-vindas:
+  "opa", "beleza", "show", "tranquilo", "certinho", "tá na mão", "pode deixar", "meu amigo", "valeu". No máximo uma por mensagem. Uma conversa sem nenhuma também está certa.
+- Nunca use emoji, figurinha, "kkk" ou "rs".
+- Não use diminutivos ("minutinho", "probleminha") nem "taí".
+- Não use abreviação de internet (vc, tbm, pq). Português correto, com acento e maiúscula no início das frases.
+- Cumprimente uma única vez, na primeira resposta da conversa. Depois disso, não repita saudação nem o nome do cliente. Não use o nome do cliente.
+- Não peça desculpa em excesso, não se justifique e não fale de sistema, gerente ou problema interno.
+- Nunca escreva "não rola", "não dá" ou "não tem como".
+- Nada de listas, negrito, títulos ou markdown.
+Exemplos:
+- Primeira mensagem: "Opa, boa tarde! Qual a medida do pneu?"
+- Cliente pergunta "tudo bem?": "Tudo certo. Qual a medida do pneu?"
+- Preço e pagamento: "Esse valor é no Pix. No cartão, até 4x sem juros."
+- Cliente agradece: "Valeu! Qualquer coisa é só chamar."
+
+COMO A LOJA VENDE
+1. Sem a medida, pergunte a medida. O cliente costuma mandar seco ("205 40 17, dois pneus, valor?").
+2. Com a medida, use buscar_pneus e depois mostrar_pneus: a foto real já vai com descrição e valor na legenda.
    Mostre até 3 opções, das mais em conta para as mais caras, a não ser que ele peça marca específica.
-   Se não tiver a medida exata, diga em uma frase que essa não tem e mostre a mais próxima que tem.
-   Se ele pediu mais unidades do que há no estoque, avise quantas tem.
-3. Antes da primeira foto, cumprimente de forma curta se ele ainda não foi cumprimentado ("Bom dia, tudo beleza?").
-   Depois das fotos, no máximo uma frase curta (ex.: "Esses são os que tenho nessa medida 👍"). Não ofereça pagamento antes de perguntarem.
-4. Perguntou forma de pagamento: "Esse valor é no Pix, ou em até 4x sem juros no cartão." (é o mesmo valor da foto).
-5. Pediu desconto / "quanto fica à vista?" / "faz por menos?": na PRIMEIRA vez, responda que o valor da foto já é o do Pix
-   e que dá pra fazer em até 4x sem juros. Se INSISTIR (segunda vez), use transferir_vendedor.
-6. Entrega / frete / "entrega em tal lugar?": responda "Tem uma pequena taxa sim, me manda sua localização que eu vejo pra você 👍"
-   e use transferir_vendedor (o vendedor negocia o frete junto). Não calcule frete.
-7. Qualquer coisa fora disso (montagem, alinhamento, garantia específica, nota fiscal, atacado/quantidade grande,
-   reclamação, troca, pedido de ligação, foto que você não entendeu, dúvida que você não sabe): use transferir_vendedor.
-   Localização da loja e horário você pode responder só se tiver certeza; se não tiver, transfira.
+   Depois das fotos, NÃO escreva nada: a foto com o valor é a resposta. Nada de "mandei as fotos" ou "essas são as opções".
+   Se não tiver a medida exata, escreva só "Nessa medida não tenho. A mais próxima é essa:" e mostre.
+   Se ele pediu mais unidades do que há, diga quantas tem, em uma frase.
+   Se ele respondeu citando uma foto, ele está falando daquele pneu.
+3. Perguntou forma de pagamento ou parcelamento (até 4x): "Esse valor é no Pix. No cartão, até 4x sem juros."
+4. Pediu desconto, "quanto fica à vista", "faz por menos": na primeira vez, responda que o valor já é o do Pix e no cartão até 4x sem juros.
+   Se insistir, use transferir_vendedor.
+5. Quer fechar ("vou querer", "pode separar", "vou buscar"): antes de passar, confirme o que faltar, uma pergunta por mensagem, no máximo duas no total:
+   a quantidade (se ele não disse) e "Vai retirar na loja ou quer entrega?". Com isso, responda "Pode deixar, já vou separar aqui." e use transferir_vendedor.
+   Se for entrega, use a regra 6.
+6. Entrega ou frete: "Tem uma taxa pequena. Me manda sua localização que eu vejo pra você." e use transferir_vendedor. Não calcule frete.
+7. Use transferir_vendedor também quando: pedir mais de 4x; for revenda, borracharia ou atacado; for pneu de moto ou outro assunto que não é pneu;
+   reclamar ou cobrar demora; pedir para falar com uma pessoa ou pedir ligação; não souber a medida; mandar foto que você não entendeu; montagem, alinhamento,
+   garantia, nota fiscal, troca ou devolução. Quando a transferência não pede outra frase, responda só "Certinho, um momento."
 
 TRANSFERÊNCIA
-- É silenciosa. NUNCA diga "vou te passar para um vendedor/humano/responsável/atendente".
-  Quando transferir, mande no máximo uma frase natural de espera ("Só um minutinho que já te falo 👍") ou a frase da localização.
-- Depois de transferir, a conversa é do vendedor: você não responde mais.
+É silenciosa: nunca diga que vai passar para vendedor, humano, gerente ou atendente. Depois de transferir, a conversa é do vendedor.
 
 REGRAS
-- Nunca invente pneu, preço, estoque ou prazo: tudo vem das ferramentas. O preço é o da ferramenta, em reais.
-- Nunca prometa desconto. Nunca marque venda perdida.
-- O cliente pode mandar áudio (vem transcrito) ou foto de pneu/lateral: leia a medida da foto se der.`;
+- Nunca invente pneu, preço, estoque ou prazo: tudo vem das ferramentas.
+- Nunca prometa desconto. Nunca dê o assunto por encerrado nem marque venda perdida.
+- O cliente pode mandar áudio (vem transcrito) ou foto de pneu: leia a medida da lateral se der.`;
 
 const FERRAMENTAS: Anthropic.Tool[] = [
   {
@@ -61,7 +76,7 @@ const FERRAMENTAS: Anthropic.Tool[] = [
       type: "object",
       properties: {
         medida: { type: "string", description: "Medida como o cliente mandou, ex.: \"205/40 R17\", \"205 40 17\", \"265/65R17\". Vazio para buscar por texto." },
-        texto: { type: "string", description: "Opcional: marca ou modelo (\"XBRI\", \"A/T\"), ou busca livre quando não há medida." },
+        texto: { type: "string", description: "Opcional: marca ou modelo (\"XBRI\", \"GOODYEAR\", \"A/T\"), ou busca livre quando não há medida." },
       },
     },
   },
@@ -76,17 +91,33 @@ const FERRAMENTAS: Anthropic.Tool[] = [
   },
   {
     name: "transferir_vendedor",
-    description: "Passa a conversa para o vendedor, em silêncio, com um resumo para ele continuar sem perguntar de novo. Depois disso você para de responder este cliente.",
+    description: "Passa a conversa para o vendedor, em silêncio, com um resumo para ele só fechar. Depois disso você para de responder este cliente.",
     input_schema: {
       type: "object",
       properties: {
-        motivo: { type: "string", description: "Por que transferiu: desconto insistente, frete/entrega, fora do roteiro..." },
-        resumo: { type: "string", description: "Pneu(s) e medida, quantidade, valores mostrados, pagamento, o que o cliente quer e o que falta." },
+        motivo: { type: "string", description: "Por que transferiu: quer fechar, desconto insistente, entrega, revenda, fora do roteiro..." },
+        resumo: { type: "string", description: "Pneu(s) com medida e marca, quantidade, valores mostrados, pagamento falado, retirada ou entrega, o que o cliente quer e o que falta." },
       },
       required: ["motivo", "resumo"],
     },
   },
 ];
+
+/**
+ * Rede de segurança do tom: o que o modelo escrever passa por aqui antes de ir para o cliente.
+ * Tira emoji e risada, troca os diminutivos e o "taí" proibidos e junta espaços.
+ */
+export function noTom(texto: string): string {
+  return String(texto || "")
+    .replace(/\p{Extended_Pictographic}|\p{Emoji_Modifier}|\u{FE0F}|\u{200D}/gu, "")
+    .replace(/\s*(?<!\p{L})(k{3,}|rs+)(?!\p{L})/giu, "")
+    .replace(/(?<!\p{L})minutinho(?!\p{L})/giu, (m) => (m[0] === "M" ? "Momento" : "momento"))
+    .replace(/(?<!\p{L})probleminha(?!\p{L})/giu, "problema")
+    .replace(/(?<!\p{L})Taí(?!\p{L})/gu, "Aqui está").replace(/(?<!\p{L})taí(?!\p{L})/gu, "aqui está")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/ +([,.!?])/g, "$1")
+    .trim();
+}
 
 export type Contexto = {
   telefone: string;
@@ -146,12 +177,16 @@ async function executar(ctx: Contexto, nome: string, input: any): Promise<{ cont
       enviados.push(p.titulo);
       await new Promise((ok) => setTimeout(ok, 900));
     }
-    return { conteudo: enviados.length ? `Enviado para o cliente: ${enviados.join("; ")}` : "Nenhum código válido; faça buscar_pneus antes." };
+    return {
+      conteudo: enviados.length
+        ? `Enviado para o cliente: ${enviados.join("; ")}. Não escreva mais nada agora.`
+        : "Nenhum código válido; faça buscar_pneus antes.",
+    };
   }
 
   if (nome === "transferir_vendedor") {
     await ctx.aoTransferir(String(input.motivo || ""), String(input.resumo || ""));
-    return { conteudo: "Transferido. Mande no máximo uma frase curta de espera (ou nada) e encerre.", transferiu: true };
+    return { conteudo: "Transferido. Se ainda não respondeu o cliente neste turno, mande só a frase curta combinada e encerre.", transferiu: true };
   }
 
   return { conteudo: `Ferramenta desconhecida: ${nome}` };
@@ -163,18 +198,27 @@ function agoraTexto() {
 
 /**
  * Um turno de atendimento. Texto que a IA escreve antes de usar uma ferramenta sai na hora,
- * na ordem: "Bom dia, tudo beleza?" → fotos → fechamento. Devolve o texto final (pode ser vazio).
+ * na ordem: "Opa, boa tarde!" → fotos → (nada). Devolve o texto final, já no tom (pode ser vazio).
  */
 export async function atenderPneus(ctx: Contexto, historico: Anthropic.MessageParam[], conteudo: Anthropic.ContentBlockParam[], extraSistema = ""): Promise<string> {
+  const jaCumprimentou = historico.some((m) => m.role === "assistant");
   const sistema: Anthropic.TextBlockParam[] = [
     { type: "text", text: PERSONA_PNEUS, cache_control: { type: "ephemeral" } },
-    { type: "text", text: [`Agora: ${agoraTexto()} (horário de Goiânia).`, ctx.nome ? `Nome no WhatsApp do cliente: ${ctx.nome}.` : "", extraSistema].filter(Boolean).join("\n") },
+    {
+      type: "text",
+      text: [
+        `Agora: ${agoraTexto()} (horário de Goiânia).`,
+        jaCumprimentou ? "Você já cumprimentou este cliente: não cumprimente de novo." : "Esta é a sua primeira resposta: cumprimente uma vez (bom dia, boa tarde ou boa noite conforme a hora).",
+        extraSistema,
+      ].filter(Boolean).join("\n"),
+    },
   ];
   const ult = historico[historico.length - 1];
   const mensagens: Anthropic.MessageParam[] = ult?.role === "user"
     ? [...historico.slice(0, -1), { role: "user", content: [{ type: "text", text: String(ult.content) }, ...conteudo] }]
     : [...historico, { role: "user", content: conteudo }];
 
+  let fotosNoTurno = false;
   for (let passo = 0; passo < MAX_PASSOS; passo++) {
     const r = await client.beta.messages.create({
       model: config.modelo,
@@ -190,10 +234,12 @@ export async function atenderPneus(ctx: Contexto, historico: Anthropic.MessagePa
       [`pneus:${r.model}`, r.usage?.input_tokens ?? 0, r.usage?.output_tokens ?? 0, r.usage?.cache_read_input_tokens ?? 0]).catch(() => {});
 
     mensagens.push({ role: "assistant", content: r.content });
-    const textos = (r.content as any[]).filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
+    const textos = noTom((r.content as any[]).filter((b) => b.type === "text").map((b) => b.text).join("\n"));
     const usos = (r.content as any[]).filter((b) => b.type === "tool_use");
     if (r.stop_reason !== "tool_use" || !usos.length) {
       if (r.stop_reason === "pause_turn") continue;
+      // depois das fotos a foto com o valor é a resposta: comentário de "mandei as fotos" não sai
+      if (fotosNoTurno && /\b(mandei|enviei|te mostrei|essas s[ãa]o|esses s[ãa]o|as op[çc][õo]es)\b/i.test(textos) && !/\?/.test(textos)) return "";
       return textos;
     }
     if (textos) { // fala antes de agir (cumprimento antes da foto)
@@ -204,6 +250,7 @@ export async function atenderPneus(ctx: Contexto, historico: Anthropic.MessagePa
     const resultados: Anthropic.ToolResultBlockParam[] = [];
     for (const b of usos) { // em ordem: as fotos saem na sequência que a IA escolheu
       const res = await executar(ctx, b.name, b.input).catch((e) => ({ conteudo: `Erro: ${String(e?.message || e)}` }));
+      if (b.name === "mostrar_pneus") fotosNoTurno = true;
       resultados.push({ type: "tool_result", tool_use_id: b.id, content: res.conteudo });
     }
     mensagens.push({ role: "user", content: resultados });
@@ -211,20 +258,23 @@ export async function atenderPneus(ctx: Contexto, historico: Anthropic.MessagePa
   return "";
 }
 
-/** Mensagem de reengajamento curta, no tom da loja, a partir da conversa. */
-export async function textoReengajamento(historico: Anthropic.MessageParam[], etapa: number): Promise<string> {
-  const guia = [
-    "1ª retomada (10 min sem resposta): leve, tipo \"E aí, conseguiu ver? Qualquer coisa tô por aqui\".",
-    "2ª retomada (40 min): lembre o pneu/medida que ele pediu e que ainda tem no estoque, sem pressão.",
-    "3ª e última retomada (3h40): curta e gentil, deixe a porta aberta (\"quando precisar é só chamar\").",
-  ][etapa - 1];
+const GUIA_RETOMADA: Record<string, string> = {
+  primeira: "Primeira retomada, minutos depois: só uma pergunta curta e leve sobre o que ele viu (ex.: \"Conseguiu ver os pneus?\").",
+  meio: "Retomada do mesmo dia: lembre em uma frase o pneu ou a medida que ele pediu e que ainda tem no estoque, sem pressão.",
+  ultima_do_dia: "Última retomada do dia: curta, deixe a porta aberta (\"Se precisar, é só chamar.\").",
+  dia_seguinte: "Retomada no dia seguinte: cumprimente conforme a hora e pergunte se ele ainda precisa do pneu daquela medida.",
+  reativacao: "Faz uma semana que ele parou de responder: cumprimente conforme a hora e pergunte de forma simples se ainda precisa de pneu.",
+};
+
+/** Mensagem de retomada curta, no tom da loja, a partir da conversa. */
+export async function textoReengajamento(historico: Anthropic.MessageParam[], tipo: keyof typeof GUIA_RETOMADA): Promise<string> {
   const r = await client.messages.create({
     model: config.modeloRapido,
-    max_tokens: 300,
-    system: `${PERSONA_PNEUS}\n\nAgora o cliente parou de responder. Escreva SÓ a mensagem de retomada, uma frase, sem aspas. ${guia}`,
+    max_tokens: 200,
+    system: `${PERSONA_PNEUS}\n\nAgora: ${agoraTexto()}. O cliente parou de responder. Escreva SÓ a mensagem de retomada, uma frase, sem aspas, sem o nome dele. ${GUIA_RETOMADA[tipo]}`,
     messages: [...historico.filter((m) => typeof m.content === "string"), { role: "user", content: "[sistema: o cliente não respondeu; escreva a retomada]" }] as any,
   });
-  return r.content.filter((b) => b.type === "text").map((b: any) => b.text).join(" ").trim();
+  return noTom(r.content.filter((b) => b.type === "text").map((b: any) => b.text).join(" "));
 }
 
 /** Resumo para o card quando a conversa vai para Não Responsivo. */

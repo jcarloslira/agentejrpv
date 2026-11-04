@@ -7,8 +7,12 @@
  *
  * Regras do Lucas (29/10 e 03/11/2026):
  *  - transferência silenciosa: o vendedor recebe o resumo e a IA para de responder aquele cliente;
- *  - reengajamento 10 min → 40 min → 3h40 (a partir da última mensagem do cliente), no máximo 3;
- *    6h40 sem resposta = Não Responsivo: encerra e grava o resumo; nunca marca venda perdida;
+ *    enquanto o cliente espera, o vendedor é lembrado (5, 15 e 30 min);
+ *  - se o vendedor responder pelo celular, a IA se desliga naquela conversa;
+ *  - follow-up escalonado pelo momento da conversa (a partir da última mensagem do cliente):
+ *    cliente quente (já viu pneu e respondeu) 10 / 30 / 60 / 90 min; frio 10 / 40 min / 3h40 / 6h40;
+ *    mais um no dia seguinte; 4h depois dele vai para Não Responsivo (encerra e grava o resumo,
+ *    nunca marca venda perdida); 7 dias depois, uma reativação;
  *  - cliente que volta depois do Não Responsivo é atendido de novo pela IA.
  */
 import type Anthropic from "@anthropic-ai/sdk";
@@ -16,11 +20,14 @@ import { q, um } from "../db.js";
 import { config } from "../config.js";
 import * as wa from "../whatsapp/uazapi.js";
 import { transcrever } from "../voz/elevenlabs.js";
-import { atenderPneus, textoReengajamento, resumoDaConversa } from "./agente.js";
+import { atenderPneus, textoReengajamento, resumoDaConversa, noTom } from "./agente.js";
 
-const REENGAJAR_MIN = [10, 40, 220]; // minutos depois da última mensagem do cliente
-const NAO_RESPONSIVO_MIN = 400;
-const TRANSFERENCIA_DEMO_MIN = 30; // na demonstração, depois disso a IA volta (para o Lucas testar de novo)
+const RETOMADA_QUENTE_MIN = [10, 30, 60, 90, 1440];
+const RETOMADA_FRIA_MIN = [10, 40, 220, 400, 1440];
+const NAO_RESPONSIVO_DEPOIS_MIN = 240;  // depois da última retomada
+const REATIVAR_MIN = 7 * 24 * 60;       // depois do Não Responsivo
+const LEMBRAR_VENDEDOR_MIN = [5, 15, 30];
+const TRANSFERENCIA_DEMO_MIN = 30;      // demonstração: sem o vendedor ter respondido, a IA volta depois disso
 const JANELA = 40;
 
 type Estado = {
@@ -28,14 +35,26 @@ type Estado = {
   nome: string | null;
   desde: string;             // início da conversa atual (#reiniciar zera)
   ultimoCliente: string | null;
-  etapa: number;             // retomadas já feitas (0–3)
+  etapa: number;             // retomadas já feitas
+  quente?: boolean;          // já viu pneu e respondeu depois
   naoResponsivo: boolean;
+  naoResponsivoEm?: string | null;
+  reativado?: boolean;
   transferido: { em: string; motivo: string } | null;
+  vendedorEm?: string | null;      // vendedor respondeu pelo celular: a conversa é dele
+  esperandoDesde?: string | null;  // cliente escreveu depois da transferência e ninguém respondeu
+  lembretes?: number;
 };
 
 const digitos = (s: string) => String(s || "").replace(/\D/g, "");
 const fim8 = (t: string) => digitos(t).slice(-8);
 const chave = (t: string) => `pneus:conv:${fim8(t)}`;
+const minutosDesde = (iso: string | null | undefined) => (iso ? (Date.now() - new Date(iso).getTime()) / 60e3 : Infinity);
+
+function saudacao() {
+  const h = Number(new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", hour12: false }).format(new Date()));
+  return h < 12 ? "bom dia" : h < 18 ? "boa tarde" : "boa noite";
+}
 
 // ---------- quem está na demonstração ----------
 
@@ -67,8 +86,6 @@ async function vendedores(): Promise<string[]> {
  *   #pneus vendedor 5562… → quem recebe as transferências   #pneus status
  *   #pneus chamar 5562… [texto] → a loja manda a 1ª mensagem (puxa assunto) e libera o número
  */
-const ABERTURA = "Opa, boa tarde! Tudo beleza? Aqui é da Taipneus 😄 Me manda a medida que você tá precisando " +
-  "(do jeito que seus clientes mandam, tipo 205 40 17, dois pneus) que eu já te mostro o que tem no estoque, com foto e valor.";
 export async function comando(telefoneAdmin: string, texto_: string): Promise<string> {
   const partes = texto_.trim().split(/\s+/).slice(1);
   const atual = (await um<{ valor: any }>(`select valor from paloma.config where chave='pneus:demo'`))?.valor ?? {};
@@ -76,17 +93,20 @@ export async function comando(telefoneAdmin: string, texto_: string): Promise<st
   let vend: string[] = (atual.vendedores ?? []).map(digitos);
   const num = digitos(partes.find((p) => digitos(p).length >= 10) || "");
   const tem = (lista: string[], t: string) => lista.some((x) => fim8(x) === fim8(t));
+  const gravar = async () => {
+    await q(`insert into paloma.config (chave, valor) values ('pneus:demo', $1) on conflict (chave) do update set valor=excluded.valor, atualizado_em=now()`,
+      [JSON.stringify({ ...atual, telefones, vendedores: vend })]);
+    liberadosCache = null;
+  };
   let msg: string;
 
   if (partes[0] === "chamar" && num) {
     // a loja puxa assunto: a mensagem entra no histórico, e a resposta do cliente já cai aqui com contexto
-    const texto = texto_.replace(/^\s*#pneus\s+chamar\s+\S+\s*/i, "").trim() || ABERTURA;
+    const s = saudacao();
+    const texto = texto_.replace(/^\s*#pneus\s+chamar\s+\S+\s*/i, "").trim() || `Opa, ${s}! Qual a medida do pneu?`;
     if (!tem(telefones, num)) telefones.push(num);
-    await q(`insert into paloma.config (chave, valor) values ('pneus:demo', $1) on conflict (chave) do update set valor=excluded.valor, atualizado_em=now()`,
-      [JSON.stringify({ ...atual, telefones, vendedores: vend })]);
-    liberadosCache = null;
-    const e: Estado = { telefone: num, nome: null, desde: new Date().toISOString(), ultimoCliente: null, etapa: 0, naoResponsivo: false, transferido: null };
-    await salvar(e);
+    await gravar();
+    await salvar(novoEstado(num, null));
     const id = await wa.enviarTexto(num, texto);
     await registrar(num, "assistant", texto, id);
     return `Mandei para ${num}:\n"${texto}"`;
@@ -105,22 +125,24 @@ export async function comando(telefoneAdmin: string, texto_: string): Promise<st
     msg = `${num} agora fala com a atendente da TAIPNEUS.`;
   } else if (tem(telefones, telefoneAdmin)) {
     telefones.splice(0, telefones.length, ...telefones.filter((t) => fim8(t) !== fim8(telefoneAdmin)));
-    msg = "Demonstração desligada para você: voltei a ser a Paloma 😉";
+    msg = "Demonstração desligada para você: voltei a ser a Paloma.";
   } else {
     telefones.push(digitos(telefoneAdmin));
     msg = "Pronto: agora você fala com a atendente da TAIPNEUS. Mande uma medida pra testar. Para voltar à Paloma, mande #pneus de novo.";
   }
-  await q(`insert into paloma.config (chave, valor) values ('pneus:demo', $1) on conflict (chave) do update set valor=excluded.valor, atualizado_em=now()`,
-    [JSON.stringify({ ...atual, telefones, vendedores: vend })]);
-  liberadosCache = null;
+  await gravar();
   return msg;
 }
 
 // ---------- estado e histórico ----------
 
+function novoEstado(telefone: string, nome: string | null): Estado {
+  return { telefone, nome, desde: new Date().toISOString(), ultimoCliente: null, etapa: 0, quente: false, naoResponsivo: false, transferido: null };
+}
+
 async function lerEstado(telefone: string, nome: string | null): Promise<Estado> {
   const c = await um<{ valor: Estado }>(`select valor from paloma.config where chave=$1`, [chave(telefone)]);
-  return c?.valor ?? { telefone, nome, desde: new Date().toISOString(), ultimoCliente: null, etapa: 0, naoResponsivo: false, transferido: null };
+  return c?.valor ?? novoEstado(telefone, nome);
 }
 
 async function salvar(e: Estado) {
@@ -136,7 +158,7 @@ async function registrar(telefone: string, papel: "user" | "assistant" | "aviso"
 async function historico(e: Estado, antes: Date): Promise<Anthropic.MessageParam[]> {
   const rows = (await q<{ papel: string; texto: string }>(
     `select papel, texto from paloma.mensagens where usuario_id is null and right(telefone, 8) = $1 and criado_em >= $2 and criado_em < $3
-      order by criado_em desc limit $4`, [fim8(e.telefone), e.desde, antes, JANELA])).reverse();
+      and papel <> 'aviso' order by criado_em desc limit $4`, [fim8(e.telefone), e.desde, antes, JANELA])).reverse();
   const msgs: Anthropic.MessageParam[] = [];
   for (const r of rows) {
     const role = r.papel === "user" ? "user" : "assistant";
@@ -169,6 +191,12 @@ async function preparar(m: wa.Recebida): Promise<{ texto: string; blocos: Anthro
       texto = `${texto}\n[o cliente mandou uma foto]`.trim();
     } else texto = `${texto}\n[o cliente mandou um arquivo ${m.tipo}]`.trim();
   }
+  // respondeu citando uma mensagem (ex.: a foto de um pneu): diz qual era
+  if (m.citadaId || m.citada) {
+    const orig = m.citadaId ? await um<{ texto: string }>(`select texto from paloma.mensagens where wa_id=$1`, [m.citadaId]).catch(() => null) : null;
+    const citada = (orig?.texto || m.citada || "").replace(/\s+/g, " ").slice(0, 200);
+    if (citada) texto = `[respondendo à mensagem: "${citada}"]\n${texto}`;
+  }
   return { texto, blocos };
 }
 
@@ -179,9 +207,9 @@ export async function atender(telefone: string, lote: wa.Recebida[]) {
 
   // #reiniciar: começa uma conversa nova do zero (para testar de novo)
   if (lote.some((m) => /^\s*#reiniciar\b/i.test(m.texto))) {
-    e = { telefone, nome, desde: new Date().toISOString(), ultimoCliente: null, etapa: 0, naoResponsivo: false, transferido: null };
+    e = novoEstado(telefone, nome);
     await salvar(e);
-    await wa.enviarTexto(telefone, "🔄 Conversa reiniciada. Pode mandar como se fosse um cliente novo.");
+    await wa.enviarTexto(telefone, "Conversa reiniciada. Pode mandar como se fosse um cliente novo.");
     return;
   }
 
@@ -200,14 +228,18 @@ export async function atender(telefone: string, lote: wa.Recebida[]) {
   e.nome = nome ?? e.nome;
   e.ultimoCliente = new Date().toISOString();
   // respondeu: o relógio volta a contar da próxima etapa (e.etapa fica), sem repetir retomada já feita
-  if (e.naoResponsivo) { e.naoResponsivo = false; e.etapa = 0; } // voltou depois do Não Responsivo: a IA atende de novo
+  if (e.naoResponsivo) { e.naoResponsivo = false; e.naoResponsivoEm = null; e.reativado = false; e.etapa = 0; }
+  const anteriores = await historico(e, inicio);
+  if (anteriores.some((m) => String(m.content).includes("[foto do pneu]"))) e.quente = true;
 
   if (e.transferido) {
-    const minutos = (Date.now() - new Date(e.transferido.em).getTime()) / 60e3;
-    if (minutos < TRANSFERENCIA_DEMO_MIN) {
-      // conversa é do vendedor: a IA só repassa o que chegou
+    const doVendedor = !!e.vendedorEm || minutosDesde(e.transferido.em) < TRANSFERENCIA_DEMO_MIN;
+    if (doVendedor) {
+      // conversa é do vendedor: a IA só repassa o que chegou e marca que o cliente está esperando
+      if (!e.esperandoDesde) { e.esperandoDesde = new Date().toISOString(); e.lembretes = 0; }
       await salvar(e);
-      await avisarVendedor(`💬 ${e.nome || telefone} (em atendimento com você):\n${textos.join("\n")}`);
+      const reclamou = /demor|cad[eê]|ningu[eé]m|n[aã]o quero mais|desist/i.test(textos.join(" "));
+      await avisarVendedor(`${reclamou ? "⚠️ *Cliente reclamando, responda já*" : "💬 *Cliente escreveu*"} — ${e.nome || telefone}\n${textos.join("\n")}`);
       return;
     }
     e.transferido = null;
@@ -221,7 +253,6 @@ export async function atender(telefone: string, lote: wa.Recebida[]) {
   const presenca = setInterval(() => wa.digitando(telefone), 8000);
   let transferiu: { motivo: string; resumo: string } | null = null;
   try {
-    const anteriores = await historico(e, inicio);
     const resposta = await atenderPneus({
       telefone,
       nome: e.nome,
@@ -245,11 +276,26 @@ export async function atender(telefone: string, lote: wa.Recebida[]) {
   if (transferiu) {
     const t = transferiu as { motivo: string; resumo: string };
     e.transferido = { em: new Date().toISOString(), motivo: t.motivo };
+    e.vendedorEm = null;
+    e.esperandoDesde = new Date().toISOString(); // acabou de passar: o cliente está esperando o vendedor
+    e.lembretes = 0;
     await salvar(e);
     await avisarVendedor(
       `🛞 *Lead para você — TAIPNEUS*\nCliente: ${e.nome || "sem nome"} (${telefone})\nMotivo: ${t.motivo}\n\n${t.resumo}\n\n` +
-      `_A IA parou de responder esse cliente; a conversa é sua._`);
+      `_A IA parou de responder esse cliente; a conversa é sua. Responda pelo celular do número._`);
   }
+}
+
+/** O vendedor digitou no celular do número para um cliente da demonstração: a conversa passa a ser dele. */
+export async function vendedorRespondeu(p: { id: string; telefone: string; texto: string }) {
+  if (!(await ehDemo(p.telefone))) return;
+  const e = await lerEstado(p.telefone, null);
+  await registrar(p.telefone, "assistant", `[vendedor] ${p.texto}`, p.id || null);
+  e.transferido ??= { em: new Date().toISOString(), motivo: "vendedor assumiu a conversa" };
+  e.vendedorEm = new Date().toISOString();
+  e.esperandoDesde = null;
+  e.lembretes = 0;
+  await salvar(e);
 }
 
 /**
@@ -268,38 +314,76 @@ export async function chamadasPendentes() {
   }
 }
 
-// ---------- reengajamento ----------
+// ---------- follow-up e lembretes ----------
+
+/** Qual retomada vem agora (ou nenhuma), pelo tempo parado e pelo momento da conversa. */
+export function proximaRetomada(e: Pick<Estado, "etapa" | "quente">, paradoMin: number):
+  { tipo: "primeira" | "meio" | "ultima_do_dia" | "dia_seguinte" } | { naoResponsivo: true } | null {
+  const tabela = e.quente ? RETOMADA_QUENTE_MIN : RETOMADA_FRIA_MIN;
+  if (e.etapa >= tabela.length) return paradoMin >= tabela[tabela.length - 1] + NAO_RESPONSIVO_DEPOIS_MIN ? { naoResponsivo: true } : null;
+  if (paradoMin < tabela[e.etapa]) return null;
+  const tipo = e.etapa === 0 ? "primeira" : e.etapa === tabela.length - 1 ? "dia_seguinte" : e.etapa === tabela.length - 2 ? "ultima_do_dia" : "meio";
+  return { tipo };
+}
+
+async function enviarRetomada(e: Estado, tipo: Parameters<typeof textoReengajamento>[1]) {
+  const texto = await textoReengajamento(await historico(e, new Date()), tipo);
+  if (!texto) return false;
+  const id = await wa.enviarTexto(e.telefone, noTom(texto));
+  await registrar(e.telefone, "assistant", texto, id);
+  return true;
+}
 
 export async function reengajar() {
   const conversas = await q<{ chave: string; valor: Estado }>(`select chave, valor from paloma.config where chave like 'pneus:conv:%'`);
   for (const { valor: e } of conversas) {
-    if (!e.ultimoCliente || e.transferido || e.naoResponsivo) continue;
     if (!(await ehDemo(e.telefone))) continue;
-    const parado = (Date.now() - new Date(e.ultimoCliente).getTime()) / 60e3;
-    // só retoma se a última palavra foi da loja (o cliente é quem sumiu)
-    const ultima = await um<{ papel: string }>(
-      `select papel from paloma.mensagens where usuario_id is null and right(telefone,8)=$1 and criado_em >= $2 order by criado_em desc limit 1`,
-      [fim8(e.telefone), e.desde]);
-    if (ultima?.papel === "user") continue;
     try {
-      if (parado >= NAO_RESPONSIVO_MIN && e.etapa >= 3) {
+      // cliente esperando o vendedor: lembra o vendedor até alguém responder
+      if (e.transferido && e.esperandoDesde && !e.vendedorEm) {
+        const n = e.lembretes ?? 0;
+        const esperando = minutosDesde(e.esperandoDesde);
+        if (n < LEMBRAR_VENDEDOR_MIN.length && esperando >= LEMBRAR_VENDEDOR_MIN[n]) {
+          e.lembretes = n + 1;
+          await salvar(e);
+          await avisarVendedor(`⏰ ${e.nome || e.telefone} está esperando resposta há ${Math.round(esperando)} min. ` +
+            `Motivo: ${e.transferido.motivo}. Responda antes que ele desista.`);
+        }
+        continue;
+      }
+      if (!e.ultimoCliente || e.transferido) continue;
+
+      // Não Responsivo há 7 dias: uma reativação
+      if (e.naoResponsivo) {
+        if (!e.reativado && minutosDesde(e.naoResponsivoEm) >= REATIVAR_MIN) {
+          e.reativado = true;
+          await salvar(e);
+          await enviarRetomada(e, "reativacao");
+        }
+        continue;
+      }
+
+      // só retoma se a última palavra foi da loja (o cliente é quem sumiu)
+      const ultima = await um<{ papel: string }>(
+        `select papel from paloma.mensagens where usuario_id is null and right(telefone,8)=$1 and criado_em >= $2 and papel <> 'aviso'
+          order by criado_em desc limit 1`, [fim8(e.telefone), e.desde]);
+      if (ultima?.papel === "user") continue;
+
+      const proxima = proximaRetomada(e, minutosDesde(e.ultimoCliente));
+      if (!proxima) continue;
+      if ("naoResponsivo" in proxima) {
         const hist = await historico(e, new Date());
         const resumo = hist.length > 1 ? await resumoDaConversa(hist) : "";
         e.naoResponsivo = true;
+        e.naoResponsivoEm = new Date().toISOString();
         await salvar(e);
         await registrar(e.telefone, "aviso", `[Não Responsivo] ${resumo}`, null);
-        await avisarVendedor(`📋 *Não Responsivo* — ${e.nome || e.telefone}\n${resumo || "sem conversa"}\n_Conversa encerrada; a IA volta a atender se o cliente chamar._`);
+        await avisarVendedor(`📋 *Não Responsivo* — ${e.nome || e.telefone}\n${resumo || "sem conversa"}\n_Conversa encerrada; a IA volta a atender se o cliente chamar e reativa em 7 dias._`);
         continue;
       }
-      if (e.etapa < 3 && parado >= REENGAJAR_MIN[e.etapa]) {
-        const hist = await historico(e, new Date());
-        const texto = await textoReengajamento(hist, e.etapa + 1);
-        if (!texto) continue;
-        e.etapa += 1;
-        await salvar(e); // marca antes de enviar: reinício do servidor não manda em dobro
-        const id = await wa.enviarTexto(e.telefone, texto);
-        await registrar(e.telefone, "assistant", texto, id);
-      }
+      e.etapa += 1;
+      await salvar(e); // marca antes de enviar: reinício do servidor não manda em dobro
+      await enviarRetomada(e, proxima.tipo);
     } catch (err) {
       console.error("reengajar", e.telefone, err);
     }
