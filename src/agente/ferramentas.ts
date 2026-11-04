@@ -6,7 +6,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { q, um, pool } from "../db.js";
 import { sga, dataBR, rotaDoCatalogo, rotaSgaGrava, rotasSga } from "../integracoes/sga.js";
-import { powercrm, rotasPowerCrm, COLUNAS_FUNIL, STATUS_CARD } from "../integracoes/powercrm.js";
+import { powercrm, rotasPowerCrm, COLUNAS_FUNIL, STATUS_CARD, linkCotacao } from "../integracoes/powercrm.js";
 import { pode, rotaSgaRestritaDiretoria, SemPermissao, type Papel, type Usuario } from "./permissoes.js";
 import * as memoria from "./memoria.js";
 import { buscarConversas } from "./lembranca.js";
@@ -193,7 +193,7 @@ const F: Ferramenta[] = [
   // ===== Power CRM =====
   {
     nome: "cotacao_buscar",
-    descricao: "Procura cotações no Power CRM por placa, nome, CPF, telefone ou código. Consultor só encontra as dele. Traz etapa do funil, valores, plano e datas.",
+    descricao: "Procura cotações no Power CRM por placa, nome, CPF, telefone, código da cotação ou código do card (o de 10 letras da tela). Consultor só encontra as dele. Traz etapa do funil, valores, plano e datas.",
     papel: "consultor",
     esquema: { type: "object", properties: { termo: { type: "string" } }, required: ["termo"] },
     async executar(ctx, e) {
@@ -205,12 +205,12 @@ const F: Ferramenta[] = [
                 dados->>'namePlan' plano, dados->>'monthlyPaymentsPrice' mensalidade, dados->>'acquisitionPrice' adesao,
                 dados->>'vehicleModel' modelo, dados->>'vehicleFipeValue' fipe, dados->>'statusInspection' vistoria, dados->>'sentToHinovaDate' enviado_sga
            from paloma.pcrm_cotacoes
-          where (quotation_code=$1 or upper(placa)=upper($1) or cliente_cpf=regexp_replace($1,'\\D','','g')
+          where (quotation_code=$1 or dados->>'cardId'=$1 or upper(placa)=upper($1) or cliente_cpf=regexp_replace($1,'\\D','','g')
                  or right(regexp_replace(coalesce(cliente_celular,''),'\\D','','g'),8)=right(regexp_replace($1,'\\D','','g'),8) and length(regexp_replace($1,'\\D','','g'))>=8
                  or cliente_nome ilike '%'||$1||'%') ${filtroConsultor}
           order by criado_no_crm desc nulls last limit 15`,
         filtroConsultor ? [p.length === 7 ? p : d.length >= 8 ? d : t, ctx.usuario.powercrm_email || "-"] : [p.length === 7 ? p : d.length >= 8 ? d : t]);
-      const comEtapa = rows.map((r: any) => ({ ...r, etapa: STATUS_CARD[r.card_status] || r.card_status }));
+      const comEtapa = rows.map((r: any) => ({ ...r, etapa: STATUS_CARD[r.card_status] || r.card_status, link_cliente: linkCotacao(r.quotation_code) }));
       return json({ fonte: await frescorPowerCrm(), cotacoes: comEtapa });
     },
   },
@@ -268,7 +268,7 @@ const F: Ferramenta[] = [
         powercrm("GET", "/api/quotation/quotationFipeApi", { query: { quotationCode: e.codigo } }),
       ]);
       const val = (r: PromiseSettledResult<any>) => (r.status === "fulfilled" ? r.value : { erro: (r.reason as Error).message });
-      return json({ cotacao: val(cot), planos: val(planos), fipe: val(fipe) });
+      return json({ link_cliente: linkCotacao(e.codigo), cotacao: val(cot), planos: val(planos), fipe: val(fipe) });
     },
   },
   {

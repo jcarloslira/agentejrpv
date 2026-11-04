@@ -52,6 +52,10 @@ export async function powercrm(metodo: "GET" | "POST" | "PUT", rota: string, op:
   }
 }
 
+/** Link da cotação para o cliente (o mesmo do "Enviar cotação → via link" da tela).
+ *  Padrão confirmado em 03/11/2026: card GDK84a442Q = cotação rXX1Noer → myplanquot?h=rXX1Noer */
+export const linkCotacao = (codigo: string) => `https://app.powercrm.com.br/myplanquot?h=${encodeURIComponent(codigo)}`;
+
 /** Colunas do funil aceitas por /api/quotation/card/move */
 export const COLUNAS_FUNIL = ["RECEIVED", "IN_NEGOTIATION", "INSPECTION", "RELEASED_FOR_REGISTRATION", "COMPLETED"] as const;
 
